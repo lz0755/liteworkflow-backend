@@ -15,6 +15,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebExceptionHandler;
 import reactor.core.publisher.Mono;
@@ -42,6 +43,9 @@ public final class ReactiveGlobalExceptionHandler implements WebExceptionHandler
         if (exception instanceof BizException bizException) {
             errorCode = bizException.errorCode();
             message = bizException.getMessage();
+        } else if (exception instanceof NoResourceFoundException) {
+            errorCode = CommonErrorCode.NOT_FOUND;
+            message = errorCode.defaultMessage();
         } else {
             errorCode = CommonErrorCode.INTERNAL_ERROR;
             message = errorCode.defaultMessage();

@@ -6,7 +6,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "debug=false")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "debug=false",
+        "management.health.redis.enabled=false",
+        "liteworkflow.security.jwt.secret=VGhpcy1pcy1hLXRlc3Qtc2VjcmV0LWtleS13aXRoLTMyLWJ5dGVzIQ=="
+})
 class GatewayServiceSmokeTest {
 
     @LocalServerPort

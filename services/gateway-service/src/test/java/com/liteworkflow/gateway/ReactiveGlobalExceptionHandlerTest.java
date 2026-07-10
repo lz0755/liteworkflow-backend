@@ -7,6 +7,7 @@ import com.liteworkflow.common.core.error.BizException;
 import com.liteworkflow.common.core.error.CommonErrorCode;
 import com.liteworkflow.common.core.trace.TraceConstants;
 import com.liteworkflow.gateway.error.ReactiveGlobalExceptionHandler;
+import com.liteworkflow.gateway.security.SecurityResponseWriter;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
@@ -27,5 +28,19 @@ class ReactiveGlobalExceptionHandlerTest {
         assertThat(exchange.getResponse().getBodyAsString().block())
                 .contains("\"code\":\"COMMON_404\"")
                 .contains("\"traceId\":\"reactive-error-trace\"");
+    }
+
+    @Test
+    void writesUnifiedForbiddenSecurityResponse() {
+        SecurityResponseWriter writer = new SecurityResponseWriter(new ObjectMapper().findAndRegisterModules());
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/forbidden"));
+        exchange.getAttributes().put(TraceConstants.REACTOR_CONTEXT_KEY, "forbidden-trace");
+
+        writer.write(exchange, CommonErrorCode.FORBIDDEN, CommonErrorCode.FORBIDDEN.defaultMessage()).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(exchange.getResponse().getBodyAsString().block())
+                .contains("\"code\":\"COMMON_403\"")
+                .contains("\"traceId\":\"forbidden-trace\"");
     }
 }

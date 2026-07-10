@@ -4,12 +4,69 @@ server:
 spring:
   application:
     name: gateway-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration
   main:
     banner-mode: off
     web-application-type: reactive
+  cloud:
+    gateway:
+      server:
+        webflux:
+          global-filter:
+            local-response-cache:
+              enabled: false
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 30s
+
+liteworkflow:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      issuer: ${JWT_ISSUER:liteworkflow}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+      clock-skew: ${JWT_CLOCK_SKEW:30s}
+  gateway:
+    services:
+      identity: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+      core: ${CORE_SERVICE_URL:http://localhost:8082}
+      infra: ${INFRA_SERVICE_URL:http://localhost:8083}
+      ai: ${AI_SERVICE_URL:http://localhost:8084}
+    openapi:
+      enabled: ${LITEWORKFLOW_OPENAPI_ENABLED:true}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    rate-limits:
+      # Token bucket values below implement 10/60/30/5 requests per minute respectively.
+      login: { replenish-rate: 10, burst-capacity: 600, requested-tokens: 60 }
+      user-search: { replenish-rate: 60, burst-capacity: 3600, requested-tokens: 60 }
+      ai: { replenish-rate: 30, burst-capacity: 1800, requested-tokens: 60 }
+      sse: { replenish-rate: 5, burst-capacity: 300, requested-tokens: 60 }
+
+springdoc:
+  api-docs:
+    enabled: ${LITEWORKFLOW_OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${LITEWORKFLOW_OPENAPI_ENABLED:true}
+    disable-swagger-default-url: true
+    urls:
+      - name: gateway
+        url: /v3/api-docs/gateway
+      - name: identity
+        url: /v3/api-docs/identity
+      - name: core
+        url: /v3/api-docs/core
+      - name: infra
+        url: /v3/api-docs/infra
+      - name: ai
+        url: /v3/api-docs/ai
 
 management:
   endpoints:

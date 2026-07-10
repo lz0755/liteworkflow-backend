@@ -24,18 +24,25 @@ public final class ReactiveTraceIdFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String traceId = TraceIds.resolve(
                 exchange.getRequest().getHeaders().getFirst(TraceConstants.TRACE_ID_HEADER));
-        exchange.getAttributes().put(TraceConstants.REACTOR_CONTEXT_KEY, traceId);
-        exchange.getResponse().getHeaders().set(TraceConstants.TRACE_ID_HEADER, traceId);
+        ServerWebExchange trustedExchange = exchange.mutate()
+                .request(request -> request.headers(headers -> {
+                    headers.keySet().removeIf(GatewayHeaders::isInternalIdentityHeader);
+                    headers.remove(TraceConstants.TRACE_ID_HEADER);
+                    headers.set(TraceConstants.TRACE_ID_HEADER, traceId);
+                }))
+                .build();
+        trustedExchange.getAttributes().put(TraceConstants.REACTOR_CONTEXT_KEY, traceId);
+        trustedExchange.getResponse().getHeaders().set(TraceConstants.TRACE_ID_HEADER, traceId);
         logWithTrace(traceId, () -> log.debug(
                 "Gateway request started method={} path={}",
-                exchange.getRequest().getMethod(),
-                exchange.getRequest().getPath()));
+                trustedExchange.getRequest().getMethod(),
+                trustedExchange.getRequest().getPath()));
 
-        return chain.filter(exchange)
+        return chain.filter(trustedExchange)
                 .contextWrite(context -> context.put(TraceConstants.REACTOR_CONTEXT_KEY, traceId))
                 .doFinally(signal -> logWithTrace(traceId, () -> log.debug(
                         "Gateway request completed path={} signal={}",
-                        exchange.getRequest().getPath(),
+                        trustedExchange.getRequest().getPath(),
                         signal)));
     }
 

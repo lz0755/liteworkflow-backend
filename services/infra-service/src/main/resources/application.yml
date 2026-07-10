@@ -19,3 +19,7 @@ management:
 logging:
   pattern:
     level: "%5p [traceId:%X{traceId:-}]"
+
+springdoc:
+  api-docs:
+    enabled: ${LITEWORKFLOW_OPENAPI_ENABLED:true}

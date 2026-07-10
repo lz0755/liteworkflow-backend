@@ -31,6 +31,18 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
@@ -58,10 +70,13 @@
                                     <searchTransitive>true</searchTransitive>
                                     <excludes>
                                         <exclude>com.liteworkflow:common-web</exclude>
+                                        <exclude>com.liteworkflow:common-db</exclude>
                                         <exclude>org.springframework.boot:spring-boot-starter-web</exclude>
+                                        <exclude>org.springframework.boot:spring-boot-starter-jdbc</exclude>
+                                        <exclude>org.springframework.boot:spring-boot-starter-data-r2dbc</exclude>
                                         <exclude>org.springframework:spring-webmvc</exclude>
                                     </excludes>
-                                    <message>gateway-service must remain WebFlux-only and cannot consume Servlet common-web.</message>
+                                    <message>gateway-service must remain WebFlux-only and cannot consume Servlet or business database infrastructure.</message>
                                 </bannedDependencies>
                             </rules>
                         </configuration>
