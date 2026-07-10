@@ -1,0 +1,21 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: identity-service
+  main:
+    banner-mode: off
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  pattern:
+    level: "%5p [traceId:%X{traceId:-}]"
