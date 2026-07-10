@@ -6,6 +6,60 @@ spring:
     name: identity-service
   main:
     banner-mode: off
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:liteworkflow_backend}
+    username: ${POSTGRES_USER:liteworkflow}
+    password: ${POSTGRES_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: identity
+  flyway:
+    enabled: true
+    schemas: identity
+    default-schema: identity
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_AMQP_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+
+liteworkflow:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      issuer: ${JWT_ISSUER:liteworkflow}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+      clock-skew: ${JWT_CLOCK_SKEW:30s}
+  identity:
+    refresh-token-ttl: ${IDENTITY_REFRESH_TOKEN_TTL:30d}
+    reset-token-ttl: ${IDENTITY_RESET_TOKEN_TTL:30m}
+    password-reset-url: ${IDENTITY_PASSWORD_RESET_URL:http://localhost:3000/reset-password}
+    login-limit:
+      max-failures: ${IDENTITY_LOGIN_MAX_FAILURES:5}
+      window: ${IDENTITY_LOGIN_FAILURE_WINDOW:15m}
+    outbox:
+      max-retries: ${IDENTITY_OUTBOX_MAX_RETRIES:12}
+      retry-delay: ${IDENTITY_OUTBOX_RETRY_DELAY:10s}
+      publisher-confirm-timeout: ${IDENTITY_OUTBOX_PUBLISHER_CONFIRM_TIMEOUT:5s}
+      immediate-publish: ${IDENTITY_OUTBOX_IMMEDIATE_PUBLISH:true}
+      scheduling-enabled: ${IDENTITY_OUTBOX_SCHEDULING_ENABLED:true}
 
 management:
   endpoints:
