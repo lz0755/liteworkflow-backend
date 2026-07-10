@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/infra-common.sh
+source "${SCRIPT_DIR}/lib/infra-common.sh"
+
+infra_preflight
+infra_require_command curl
+
+services=(postgres redis rabbitmq nacos seaweedfs mailhog)
+
+check_container_health() {
+  local service="$1"
+  local container_id
+  local state
+  local health
+
+  container_id="$(infra_compose ps --quiet "${service}")"
+  [[ -n "${container_id}" ]] || infra_die "${service} container does not exist. Run scripts/dev-up first."
+  state="$(docker inspect --format '{{.State.Status}}' "${container_id}")"
+  health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' "${container_id}")"
+  [[ "${state}" == running ]] || infra_die "${service} container state is '${state}', expected 'running'."
+  [[ "${health}" == healthy ]] || infra_die "${service} health is '${health}', expected 'healthy'. Inspect with: docker inspect ${container_id}"
+  echo "PASS container/${service}: running and healthy"
+}
+
+for service in "${services[@]}"; do
+  check_container_health "${service}"
+done
+
+postgres_sql="
+  SELECT current_database()
+    || ':' || (SELECT extversion FROM pg_extension WHERE extname = 'vector')
+    || ':' || (SELECT count(*) FROM pg_namespace WHERE nspname IN ('identity', 'core', 'infra', 'ai', 'rag'))
+    || ':' || (SELECT rolsuper::text || ',' || rolcreatedb::text || ',' || rolcreaterole::text FROM pg_roles WHERE rolname = current_user);
+"
+postgres_result="$(infra_compose exec --no-TTY postgres sh -ec '
+  export PGPASSWORD="${POSTGRES_APP_PASSWORD}"
+  exec psql -h 127.0.0.1 -U "${POSTGRES_APP_USER}" -d "${POSTGRES_DB}" -v ON_ERROR_STOP=1 -Atqc "$1"
+' sh "${postgres_sql}")"
+IFS=: read -r checked_db vector_version schema_count role_flags <<<"${postgres_result}"
+[[ "${checked_db}" == liteworkflow_backend ]] || infra_die "PostgreSQL connected to '${checked_db}', expected 'liteworkflow_backend'."
+[[ -n "${vector_version}" ]] || infra_die "PostgreSQL vector extension is missing."
+[[ "${schema_count}" == 5 ]] || infra_die "PostgreSQL has ${schema_count}/5 required schemas."
+[[ "${role_flags}" == false,false,false ]] || infra_die "PostgreSQL application role has excessive privileges (${role_flags})."
+echo "PASS postgres: database=${checked_db}, vector=${vector_version}, schemas=5, app_role=non-superuser"
+
+redis_result="$(infra_compose exec --no-TTY redis sh -ec 'redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" ping')"
+[[ "${redis_result}" == PONG ]] || infra_die "Redis ping returned '${redis_result}', expected 'PONG'."
+echo "PASS redis: authenticated PING"
+
+rabbitmq_user="$(infra_env_value RABBITMQ_USER)"
+rabbitmq_password="$(infra_env_value RABBITMQ_PASSWORD)"
+rabbitmq_port="$(infra_env_value RABBITMQ_MANAGEMENT_PORT)"
+rabbitmq_whoami="$(curl --silent --show-error --fail \
+  --user "${rabbitmq_user}:${rabbitmq_password}" \
+  "http://127.0.0.1:${rabbitmq_port}/api/whoami")" \
+  || infra_die "RabbitMQ Management API authentication or connectivity check failed."
+[[ "${rabbitmq_whoami}" == *'"tags":["management"]'* ]] \
+  || infra_die "RabbitMQ user must have only the management tag; response was: ${rabbitmq_whoami}"
+echo "PASS rabbitmq: authenticated Management API with non-administrator tag"
+
+nacos_console_port="$(infra_env_value NACOS_CONSOLE_PORT)"
+curl --silent --show-error --fail --location \
+  "http://127.0.0.1:${nacos_console_port}/" >/dev/null \
+  || infra_die "Nacos console connectivity check failed."
+infra_nacos_login \
+  || infra_die "Nacos administrator authentication failed."
+echo "PASS nacos: console HTTP endpoint and administrator authentication"
+
+seaweedfs_access_key="$(infra_env_value SEAWEEDFS_ACCESS_KEY)"
+seaweedfs_secret_key="$(infra_env_value SEAWEEDFS_SECRET_KEY)"
+seaweedfs_port="$(infra_env_value SEAWEEDFS_S3_PORT)"
+curl --silent --show-error --fail \
+  --aws-sigv4 aws:amz:us-east-1:s3 \
+  --user "${seaweedfs_access_key}:${seaweedfs_secret_key}" \
+  "http://127.0.0.1:${seaweedfs_port}/" >/dev/null \
+  || infra_die "SeaweedFS signed S3 request failed. Ensure curl supports --aws-sigv4."
+echo "PASS seaweedfs: authenticated S3 ListBuckets"
+
+mailhog_port="$(infra_env_value MAILHOG_UI_PORT)"
+curl --silent --show-error --fail \
+  "http://127.0.0.1:${mailhog_port}/api/v2/messages?start=0&limit=1" >/dev/null \
+  || infra_die "MailHog HTTP API connectivity check failed."
+echo "PASS mailhog: HTTP API"
+
+echo "All liteworkflow infrastructure checks passed."

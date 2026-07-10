@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/infra-common.sh
+source "${SCRIPT_DIR}/lib/infra-common.sh"
+
+usage() {
+  echo "Usage: $0 --yes [--no-start]" >&2
+  echo "  --yes       confirm permanent deletion of all M0 data volumes" >&2
+  echo "  --no-start  delete the stack and volumes without recreating them" >&2
+}
+
+confirmed=false
+start_after_reset=true
+for arg in "$@"; do
+  case "${arg}" in
+    --yes) confirmed=true ;;
+    --no-start) start_after_reset=false ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage
+      infra_die "Unknown argument: ${arg}"
+      ;;
+  esac
+done
+
+[[ "${confirmed}" == true ]] || {
+  usage
+  infra_die "Refusing to delete data without explicit --yes confirmation."
+}
+
+infra_preflight
+infra_validate_no_placeholders
+
+echo "Deleting PostgreSQL, Redis, RabbitMQ, Nacos, SeaweedFS, and MailHog data volumes..."
+if ! infra_compose down --volumes --remove-orphans; then
+  infra_die "Docker Compose failed while deleting infrastructure volumes."
+fi
+
+if [[ "${start_after_reset}" == false ]]; then
+  echo "Infrastructure and persistent volumes deleted. Nothing was restarted."
+  exit 0
+fi
+
+echo "Persistent data deleted. Recreating a clean infrastructure stack..."
+ENV_FILE="${INFRA_ENV_FILE}" "${SCRIPT_DIR}/dev-up"

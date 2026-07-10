@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/infra-common.sh
+source "${SCRIPT_DIR}/lib/infra-common.sh"
+
+infra_preflight
+
+echo "Stopping liteworkflow infrastructure (persistent volumes are preserved)..."
+if ! infra_compose down --remove-orphans; then
+  infra_die "Docker Compose failed to stop the infrastructure. Run 'docker compose ps' for details."
+fi
+echo "Infrastructure stopped. Data volumes were preserved."

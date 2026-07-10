@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/infra-common.sh
+source "${SCRIPT_DIR}/lib/infra-common.sh"
+
+infra_preflight
+infra_validate_no_placeholders
+
+echo "Validating Docker Compose configuration..."
+infra_compose config --quiet || infra_die "Docker Compose configuration validation failed. Check ${INFRA_ENV_FILE}."
+
+echo "Starting liteworkflow infrastructure..."
+if ! infra_compose up --detach --wait --wait-timeout "${INFRA_WAIT_TIMEOUT:-300}"; then
+  echo "ERROR: Infrastructure did not become healthy. Current status:" >&2
+  infra_compose ps >&2 || true
+  echo "Recent container logs:" >&2
+  infra_compose logs --tail 80 >&2 || true
+  exit 1
+fi
+
+infra_initialize_nacos_admin
+
+echo "Infrastructure containers are healthy. Running functional checks..."
+ENV_FILE="${INFRA_ENV_FILE}" "${SCRIPT_DIR}/check-infra"
