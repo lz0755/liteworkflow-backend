@@ -53,6 +53,20 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, UU
             """)
     List<UUID> findActiveUserIdsByProjectIdAndUserIdIn(UUID projectId, List<UUID> userIds);
 
+    @Query("""
+            select m.userId from ProjectMember m, Project p, WorkspaceMember wm, UserDirectory u
+             where m.projectId = :projectId
+               and p.id = m.projectId
+               and wm.workspaceId = p.workspaceId
+               and wm.userId = m.userId
+               and u.userId = m.userId
+               and m.userId in :userIds
+               and m.status = com.liteworkflow.core.domain.MemberStatus.ACTIVE
+               and wm.status = com.liteworkflow.core.domain.MemberStatus.ACTIVE
+               and u.accountStatus = com.liteworkflow.core.domain.AccountStatus.ACTIVE
+            """)
+    List<UUID> findEligibleAssigneeIds(UUID projectId, List<UUID> userIds);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select m from ProjectMember m, Project p

@@ -7,6 +7,7 @@ import com.liteworkflow.core.domain.IssueState;
 import com.liteworkflow.core.domain.IssueStateCategory;
 import com.liteworkflow.core.domain.Project;
 import com.liteworkflow.core.domain.ProjectMember;
+import com.liteworkflow.core.domain.ProjectIssueCounter;
 import com.liteworkflow.core.domain.ProjectRole;
 import com.liteworkflow.core.domain.Workspace;
 import com.liteworkflow.core.domain.WorkspaceRole;
@@ -18,6 +19,7 @@ import com.liteworkflow.core.outbox.ProjectMemberEventPayload;
 import com.liteworkflow.core.repository.IssueStateRepository;
 import com.liteworkflow.core.repository.ProjectMemberRepository;
 import com.liteworkflow.core.repository.ProjectRepository;
+import com.liteworkflow.core.repository.ProjectIssueCounterRepository;
 import com.liteworkflow.core.repository.WorkspaceMemberRepository;
 import com.liteworkflow.core.repository.WorkspaceRepository;
 import java.time.Clock;
@@ -39,6 +41,7 @@ public class ProjectApplicationService {
     private final ProjectMemberRepository memberRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final IssueStateRepository issueStateRepository;
+    private final ProjectIssueCounterRepository issueCounterRepository;
     private final ActivityOutboxService activityOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
@@ -50,6 +53,7 @@ public class ProjectApplicationService {
             ProjectMemberRepository memberRepository,
             WorkspaceMemberRepository workspaceMemberRepository,
             IssueStateRepository issueStateRepository,
+            ProjectIssueCounterRepository issueCounterRepository,
             ActivityOutboxService activityOutboxService,
             ApplicationEventPublisher applicationEventPublisher,
             Clock clock) {
@@ -59,6 +63,7 @@ public class ProjectApplicationService {
         this.memberRepository = memberRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.issueStateRepository = issueStateRepository;
+        this.issueCounterRepository = issueCounterRepository;
         this.activityOutboxService = activityOutboxService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.clock = clock;
@@ -79,6 +84,7 @@ public class ProjectApplicationService {
                 now));
         ProjectMember creator = memberRepository.save(new ProjectMember(
                 UUID.randomUUID(), project.getId(), actorId, ProjectRole.PROJECT_ADMIN, actorId, now));
+        issueCounterRepository.save(new ProjectIssueCounter(project.getId(), now));
         issueStateRepository.saveAll(List.of(
                 new IssueState(UUID.randomUUID(), project.getId(), "To Do", IssueStateCategory.TODO, 0, true, now),
                 new IssueState(

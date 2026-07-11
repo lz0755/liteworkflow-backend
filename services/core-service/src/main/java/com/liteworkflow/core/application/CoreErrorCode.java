@@ -25,6 +25,17 @@ public enum CoreErrorCode implements ErrorCode {
             "CORE_PROJECT_MEMBER_403", "Project member permission is denied", 403),
     PROJECT_LAST_ADMIN_REQUIRED(
             "CORE_PROJECT_ADMIN_409", "Project must retain at least one project admin", 409),
+    ISSUE_NOT_FOUND("CORE_ISSUE_404", "Issue was not found", 404),
+    ISSUE_STATE_NOT_FOUND("CORE_ISSUE_STATE_404", "Issue state was not found", 404),
+    ISSUE_STATE_INVALID("CORE_ISSUE_STATE_400", "Issue state is invalid for this project", 400),
+    ISSUE_STATE_IN_USE("CORE_ISSUE_STATE_409", "Issue state is in use", 409),
+    ISSUE_DEFAULT_STATE_REQUIRED("CORE_ISSUE_DEFAULT_STATE_409", "Project must retain a default issue state", 409),
+    ISSUE_LABEL_NOT_FOUND("CORE_ISSUE_LABEL_404", "Issue label was not found", 404),
+    ISSUE_LABEL_ALREADY_EXISTS("CORE_ISSUE_LABEL_409", "Issue label already exists", 409),
+    ISSUE_ASSIGNEE_NOT_ELIGIBLE(
+            "CORE_ISSUE_ASSIGNEE_409", "Assignee must be an active project member or workspace manager", 409),
+    ISSUE_IDEMPOTENCY_CONFLICT(
+            "CORE_ISSUE_IDEMPOTENCY_409", "Idempotency key was already used with different content", 409),
     INVALID_PROFILE("CORE_PROFILE_400", "User profile is invalid", 400);
 
     private final String code;

@@ -99,6 +99,7 @@ public class ActivityOutboxService {
         activityRepository.save(new Activity(
                 UUID.randomUUID(),
                 workspaceId,
+                projectId,
                 actorId,
                 eventType,
                 PROJECT_MEMBER_AGGREGATE,
@@ -123,6 +124,53 @@ public class ActivityOutboxService {
                 eventType,
                 PROJECT_MEMBER_AGGREGATE,
                 memberId,
+                workspaceId,
+                projectId,
+                actorId,
+                objectMapper.valueToTree(envelope),
+                now));
+        applicationEventPublisher.publishEvent(new OutboxQueued(eventId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordProjectChange(
+            String eventType,
+            UUID workspaceId,
+            UUID projectId,
+            String aggregateType,
+            UUID aggregateId,
+            UUID actorId,
+            Object payload) {
+        Instant now = clock.instant();
+        var payloadJson = objectMapper.valueToTree(payload);
+        activityRepository.save(new Activity(
+                UUID.randomUUID(),
+                workspaceId,
+                projectId,
+                actorId,
+                eventType,
+                aggregateType,
+                aggregateId,
+                payloadJson,
+                now));
+
+        UUID eventId = UUID.randomUUID();
+        EventEnvelope<Object> envelope = new EventEnvelope<>(
+                eventId,
+                eventType,
+                1,
+                now,
+                new EventScope(workspaceId, projectId, actorId),
+                aggregateId,
+                payload,
+                Map.of());
+        outboxRepository.save(new LocalOutboxEvent(
+                eventId,
+                eventType,
+                WORK_EXCHANGE,
+                eventType,
+                aggregateType,
+                aggregateId,
                 workspaceId,
                 projectId,
                 actorId,

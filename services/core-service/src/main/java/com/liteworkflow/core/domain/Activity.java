@@ -20,6 +20,9 @@ public class Activity {
     @Column(name = "workspace_id", nullable = false)
     private UUID workspaceId;
 
+    @Column(name = "project_id")
+    private UUID projectId;
+
     @Column(name = "actor_id", nullable = false)
     private UUID actorId;
 
@@ -61,11 +64,29 @@ public class Activity {
         this.createdAt = createdAt;
     }
 
+    public Activity(
+            UUID id,
+            UUID workspaceId,
+            UUID projectId,
+            UUID actorId,
+            String activityType,
+            String aggregateType,
+            UUID aggregateId,
+            JsonNode payloadJson,
+            Instant createdAt) {
+        this(id, workspaceId, actorId, activityType, aggregateType, aggregateId, payloadJson, createdAt);
+        this.projectId = projectId;
+    }
+
     public String getActivityType() {
         return activityType;
     }
 
     public UUID getWorkspaceId() {
         return workspaceId;
+    }
+
+    public UUID getProjectId() {
+        return projectId;
     }
 }

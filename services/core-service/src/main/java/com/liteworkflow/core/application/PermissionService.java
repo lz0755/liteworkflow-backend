@@ -24,6 +24,10 @@ public interface PermissionService {
         return requireProjectRole(projectId, userId, ProjectRole.PROJECT_ADMIN);
     }
 
+    default ProjectRole requireIssueWriter(UUID projectId, UUID userId) {
+        return requireProjectRole(projectId, userId, ProjectRole.PROJECT_ADMIN, ProjectRole.MEMBER);
+    }
+
     boolean canReadProject(UUID projectId, UUID userId);
 
     boolean canManageProjectMembers(UUID projectId, UUID userId);

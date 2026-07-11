@@ -60,4 +60,16 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
                and m.userId in :userIds
             """)
     List<UUID> findActiveUserIdsByWorkspaceIdAndUserIdIn(UUID workspaceId, List<UUID> userIds);
+
+    @Query("""
+            select m.userId from WorkspaceMember m, UserDirectory u
+             where m.workspaceId = :workspaceId
+               and m.userId = u.userId
+               and m.userId in :userIds
+               and m.status = com.liteworkflow.core.domain.MemberStatus.ACTIVE
+               and m.role in (com.liteworkflow.core.domain.WorkspaceRole.OWNER,
+                              com.liteworkflow.core.domain.WorkspaceRole.ADMIN)
+               and u.accountStatus = com.liteworkflow.core.domain.AccountStatus.ACTIVE
+            """)
+    List<UUID> findActiveManagerIds(UUID workspaceId, List<UUID> userIds);
 }

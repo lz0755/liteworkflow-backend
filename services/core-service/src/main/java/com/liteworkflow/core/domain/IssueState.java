@@ -87,4 +87,27 @@ public class IssueState {
     public boolean isDefaultState() {
         return defaultState;
     }
+
+    public IssueStateStatus getStatus() {
+        return status;
+    }
+
+    public void update(String name, IssueStateCategory category, int position, boolean defaultState, Instant now) {
+        this.name = name;
+        this.category = category;
+        this.position = position;
+        this.defaultState = defaultState;
+        this.updatedAt = now;
+    }
+
+    public void clearDefault(Instant now) {
+        this.defaultState = false;
+        this.updatedAt = now;
+    }
+
+    public void delete(Instant now) {
+        this.status = IssueStateStatus.DELETED;
+        this.defaultState = false;
+        this.updatedAt = now;
+    }
 }

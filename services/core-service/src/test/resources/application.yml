@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:core;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;INIT=CREATE SCHEMA IF NOT EXISTS core
+    url: jdbc:h2:mem:core;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=20000;INIT=CREATE SCHEMA IF NOT EXISTS core
     username: sa
     password:
   flyway:
