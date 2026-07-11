@@ -6,6 +6,36 @@ spring:
     name: infra-service
   main:
     banner-mode: off
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:liteworkflow_backend}
+    username: ${POSTGRES_USER:liteworkflow}
+    password: ${POSTGRES_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: infra
+  flyway:
+    enabled: true
+    schemas: infra
+    default-schema: infra
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_AMQP_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: 500ms
+          multiplier: 2
+          max-interval: 5s
 
 management:
   endpoints:

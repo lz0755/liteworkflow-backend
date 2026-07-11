@@ -23,6 +23,7 @@ import com.liteworkflow.core.repository.IssueLabelRelationRepository;
 import com.liteworkflow.core.repository.IssueLabelRepository;
 import com.liteworkflow.core.repository.IssueRepository;
 import com.liteworkflow.core.repository.IssueStateRepository;
+import com.liteworkflow.core.repository.IssueSubscriberRepository;
 import com.liteworkflow.core.repository.ProjectIssueCounterRepository;
 import com.liteworkflow.core.repository.ProjectMemberRepository;
 import com.liteworkflow.core.repository.ProjectRepository;
@@ -64,6 +65,7 @@ public class IssueApplicationService {
     private final IssueLabelRelationRepository labelRelationRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final IssueSubscriberRepository subscriberRepository;
     private final ActivityOutboxService activityOutboxService;
     private final Clock clock;
 
@@ -78,6 +80,7 @@ public class IssueApplicationService {
             IssueLabelRelationRepository labelRelationRepository,
             ProjectMemberRepository projectMemberRepository,
             WorkspaceMemberRepository workspaceMemberRepository,
+            IssueSubscriberRepository subscriberRepository,
             ActivityOutboxService activityOutboxService,
             Clock clock) {
         this.permissionService = permissionService;
@@ -90,6 +93,7 @@ public class IssueApplicationService {
         this.labelRelationRepository = labelRelationRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
+        this.subscriberRepository = subscriberRepository;
         this.activityOutboxService = activityOutboxService;
         this.clock = clock;
     }
@@ -213,6 +217,10 @@ public class IssueApplicationService {
         UUID previousStateId = issue.getStateId();
         issue.moveTo(state.getId(), actorId, clock.instant());
         Project project = requireProject(projectId);
+        Set<UUID> notificationRecipients = subscriberRepository.findActiveReadableUserIdsByIssueId(issueId)
+                .stream()
+                .filter(userId -> !userId.equals(actorId))
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
         activityOutboxService.recordProjectChange(
                 "issue.state.changed",
                 project.getWorkspaceId(),
@@ -220,7 +228,9 @@ public class IssueApplicationService {
                 ISSUE_AGGREGATE,
                 issueId,
                 actorId,
-                issuePayload(issue, Map.of("previousStateId", previousStateId)));
+                issuePayload(issue, Map.of(
+                        "previousStateId", previousStateId,
+                        "recipientUserIds", notificationRecipients)));
         return assemble(List.of(issue)).getFirst();
     }
 

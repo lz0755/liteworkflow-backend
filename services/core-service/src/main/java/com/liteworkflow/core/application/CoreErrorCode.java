@@ -36,6 +36,13 @@ public enum CoreErrorCode implements ErrorCode {
             "CORE_ISSUE_ASSIGNEE_409", "Assignee must be an active project member or workspace manager", 409),
     ISSUE_IDEMPOTENCY_CONFLICT(
             "CORE_ISSUE_IDEMPOTENCY_409", "Idempotency key was already used with different content", 409),
+    COMMENT_NOT_FOUND("CORE_COMMENT_404", "Comment was not found", 404),
+    COMMENT_MODIFICATION_DENIED(
+            "CORE_COMMENT_403", "Only the comment author or a project administrator may modify it", 403),
+    COMMENT_BODY_INVALID("CORE_COMMENT_BODY_400", "Comment body must not be blank", 400),
+    MENTION_USER_NOT_FOUND("CORE_MENTION_USER_404", "Mentioned user was not found", 404),
+    MENTION_USER_NOT_ELIGIBLE(
+            "CORE_MENTION_MEMBER_409", "Mentioned user must be an active member of this project", 409),
     INVALID_PROFILE("CORE_PROFILE_400", "User profile is invalid", 400);
 
     private final String code;
