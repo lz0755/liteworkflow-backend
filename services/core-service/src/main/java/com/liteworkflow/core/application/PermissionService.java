@@ -1,5 +1,6 @@
 package com.liteworkflow.core.application;
 
+import com.liteworkflow.core.domain.ProjectRole;
 import com.liteworkflow.core.domain.WorkspaceRole;
 import java.util.UUID;
 
@@ -14,4 +15,16 @@ public interface PermissionService {
     default WorkspaceRole requireWorkspaceMemberManager(UUID workspaceId, UUID userId) {
         return requireWorkspaceRole(workspaceId, userId, WorkspaceRole.OWNER, WorkspaceRole.ADMIN);
     }
+
+    ProjectRole requireProjectMember(UUID projectId, UUID userId);
+
+    ProjectRole requireProjectRole(UUID projectId, UUID userId, ProjectRole... roles);
+
+    default ProjectRole requireProjectMemberManager(UUID projectId, UUID userId) {
+        return requireProjectRole(projectId, userId, ProjectRole.PROJECT_ADMIN);
+    }
+
+    boolean canReadProject(UUID projectId, UUID userId);
+
+    boolean canManageProjectMembers(UUID projectId, UUID userId);
 }

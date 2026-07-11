@@ -1,6 +1,8 @@
 package com.liteworkflow.core.config;
 
+import com.liteworkflow.core.application.ProjectPermissionCache;
 import com.liteworkflow.core.application.WorkspacePermissionCache;
+import com.liteworkflow.core.domain.ProjectRole;
 import com.liteworkflow.core.domain.WorkspaceRole;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +28,25 @@ public class PermissionCacheConfiguration {
 
             @Override
             public void evict(UUID workspaceId, UUID userId) {
+            }
+        };
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ProjectPermissionCache.class)
+    ProjectPermissionCache noOpProjectPermissionCache() {
+        return new ProjectPermissionCache() {
+            @Override
+            public Optional<ProjectRole> get(UUID projectId, UUID userId) {
+                return Optional.empty();
+            }
+
+            @Override
+            public void put(UUID projectId, UUID userId, ProjectRole role) {
+            }
+
+            @Override
+            public void evict(UUID projectId, UUID userId) {
             }
         };
     }

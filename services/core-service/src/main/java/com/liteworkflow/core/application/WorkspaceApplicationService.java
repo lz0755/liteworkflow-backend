@@ -13,6 +13,7 @@ import com.liteworkflow.core.outbox.ActivityOutboxService;
 import com.liteworkflow.core.outbox.WorkspaceMemberEventPayload;
 import com.liteworkflow.core.repository.WorkspaceMemberRepository;
 import com.liteworkflow.core.repository.WorkspaceRepository;
+import com.liteworkflow.core.repository.ProjectRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +29,7 @@ public class WorkspaceApplicationService {
     private final PermissionService permissionService;
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository memberRepository;
+    private final ProjectRepository projectRepository;
     private final ActivityOutboxService activityOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
@@ -36,12 +38,14 @@ public class WorkspaceApplicationService {
             PermissionService permissionService,
             WorkspaceRepository workspaceRepository,
             WorkspaceMemberRepository memberRepository,
+            ProjectRepository projectRepository,
             ActivityOutboxService activityOutboxService,
             ApplicationEventPublisher applicationEventPublisher,
             Clock clock) {
         this.permissionService = permissionService;
         this.workspaceRepository = workspaceRepository;
         this.memberRepository = memberRepository;
+        this.projectRepository = projectRepository;
         this.activityOutboxService = activityOutboxService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.clock = clock;
@@ -107,9 +111,13 @@ public class WorkspaceApplicationService {
                 .orElseThrow(() -> new BizException(CoreErrorCode.WORKSPACE_NOT_FOUND));
         permissionService.requireWorkspaceRole(workspaceId, actorId, WorkspaceRole.OWNER);
         List<UUID> affectedUsers = memberRepository.findActiveUserIdsByWorkspaceId(workspaceId);
+        List<UUID> affectedProjects = projectRepository.findActiveIdsByWorkspaceId(workspaceId);
         workspace.delete(clock.instant());
         affectedUsers.forEach(userId -> applicationEventPublisher.publishEvent(
                 new WorkspacePermissionInvalidation(workspaceId, userId)));
+        affectedProjects.forEach(projectId -> affectedUsers.forEach(userId ->
+                applicationEventPublisher.publishEvent(
+                        new ProjectPermissionInvalidation(projectId, userId))));
     }
 
     private String normalizeName(String name) {

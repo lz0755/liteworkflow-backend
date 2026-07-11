@@ -38,4 +38,38 @@ public interface UserDirectoryRepository extends JpaRepository<UserDirectory, UU
             """)
     Page<UserDirectory> searchActiveExcludingWorkspaceMembers(
             String pattern, UUID workspaceId, Pageable pageable);
+
+    @Query("""
+            select u from UserDirectory u, WorkspaceMember wm, Project p
+             where p.id = :projectId
+               and p.status = com.liteworkflow.core.domain.ProjectStatus.ACTIVE
+               and wm.workspaceId = p.workspaceId
+               and wm.userId = u.userId
+               and wm.status = com.liteworkflow.core.domain.MemberStatus.ACTIVE
+               and u.accountStatus = com.liteworkflow.core.domain.AccountStatus.ACTIVE
+               and (lower(u.normalizedEmail) like :pattern or lower(u.displayName) like :pattern)
+             order by lower(u.displayName), u.userId
+            """)
+    Page<UserDirectory> searchActiveWorkspaceMembersForProject(
+            String pattern, UUID projectId, Pageable pageable);
+
+    @Query("""
+            select u from UserDirectory u, WorkspaceMember wm, Project p
+             where p.id = :projectId
+               and p.status = com.liteworkflow.core.domain.ProjectStatus.ACTIVE
+               and wm.workspaceId = p.workspaceId
+               and wm.userId = u.userId
+               and wm.status = com.liteworkflow.core.domain.MemberStatus.ACTIVE
+               and u.accountStatus = com.liteworkflow.core.domain.AccountStatus.ACTIVE
+               and (lower(u.normalizedEmail) like :pattern or lower(u.displayName) like :pattern)
+               and not exists (
+                   select pm.id from ProjectMember pm
+                    where pm.projectId = p.id
+                      and pm.userId = u.userId
+                      and pm.status = com.liteworkflow.core.domain.MemberStatus.ACTIVE
+               )
+             order by lower(u.displayName), u.userId
+            """)
+    Page<UserDirectory> searchActiveWorkspaceMembersExcludingProjectMembers(
+            String pattern, UUID projectId, Pageable pageable);
 }

@@ -21,6 +21,7 @@ public class ActivityOutboxService {
 
     public static final String WORK_EXCHANGE = "work.event.exchange";
     public static final String WORKSPACE_MEMBER_AGGREGATE = "WORKSPACE_MEMBER";
+    public static final String PROJECT_MEMBER_AGGREGATE = "PROJECT_MEMBER";
 
     private final ActivityRepository activityRepository;
     private final LocalOutboxEventRepository outboxRepository;
@@ -79,6 +80,51 @@ public class ActivityOutboxService {
                 memberId,
                 workspaceId,
                 null,
+                actorId,
+                objectMapper.valueToTree(envelope),
+                now));
+        applicationEventPublisher.publishEvent(new OutboxQueued(eventId));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordProjectMemberChange(
+            String eventType,
+            UUID workspaceId,
+            UUID projectId,
+            UUID memberId,
+            UUID actorId,
+            ProjectMemberEventPayload payload) {
+        Instant now = clock.instant();
+        var activityPayload = objectMapper.valueToTree(payload);
+        activityRepository.save(new Activity(
+                UUID.randomUUID(),
+                workspaceId,
+                actorId,
+                eventType,
+                PROJECT_MEMBER_AGGREGATE,
+                memberId,
+                activityPayload,
+                now));
+
+        UUID eventId = UUID.randomUUID();
+        EventEnvelope<ProjectMemberEventPayload> envelope = new EventEnvelope<>(
+                eventId,
+                eventType,
+                1,
+                now,
+                new EventScope(workspaceId, projectId, actorId),
+                memberId,
+                payload,
+                Map.of());
+        outboxRepository.save(new LocalOutboxEvent(
+                eventId,
+                eventType,
+                WORK_EXCHANGE,
+                eventType,
+                PROJECT_MEMBER_AGGREGATE,
+                memberId,
+                workspaceId,
+                projectId,
                 actorId,
                 objectMapper.valueToTree(envelope),
                 now));

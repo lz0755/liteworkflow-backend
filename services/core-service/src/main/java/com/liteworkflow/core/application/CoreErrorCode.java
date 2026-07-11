@@ -15,6 +15,16 @@ public enum CoreErrorCode implements ErrorCode {
     WORKSPACE_MEMBER_PERMISSION_DENIED(
             "CORE_WORKSPACE_MEMBER_403", "Workspace member permission is denied", 403),
     INVALID_WORKSPACE_ROLE("CORE_WORKSPACE_ROLE_400", "Workspace role is invalid", 400),
+    PROJECT_NOT_FOUND("CORE_PROJECT_404", "Project was not found", 404),
+    PROJECT_PERMISSION_DENIED("CORE_PROJECT_403", "Project permission is denied", 403),
+    PROJECT_MEMBER_ALREADY_EXISTS("CORE_PROJECT_MEMBER_409", "Project member already exists", 409),
+    PROJECT_MEMBER_NOT_FOUND("CORE_PROJECT_MEMBER_404", "Project member was not found", 404),
+    PROJECT_MEMBER_REQUIRES_WORKSPACE_MEMBER(
+            "CORE_PROJECT_MEMBER_WORKSPACE_409", "Project member must be an active workspace member", 409),
+    PROJECT_MEMBER_PERMISSION_DENIED(
+            "CORE_PROJECT_MEMBER_403", "Project member permission is denied", 403),
+    PROJECT_LAST_ADMIN_REQUIRED(
+            "CORE_PROJECT_ADMIN_409", "Project must retain at least one project admin", 409),
     INVALID_PROFILE("CORE_PROFILE_400", "User profile is invalid", 400);
 
     private final String code;

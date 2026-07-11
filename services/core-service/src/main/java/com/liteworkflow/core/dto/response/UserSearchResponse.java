@@ -9,6 +9,7 @@ public record UserSearchResponse(
         String email,
         UUID avatarFileId,
         boolean workspaceMember,
+        boolean projectMember,
         boolean eligible,
         String ineligibleReason) {
 
@@ -17,6 +18,7 @@ public record UserSearchResponse(
     public String toString() {
         return "UserSearchResponse[userId=" + userId
                 + ", workspaceMember=" + workspaceMember
+                + ", projectMember=" + projectMember
                 + ", eligible=" + eligible + "]";
     }
 }

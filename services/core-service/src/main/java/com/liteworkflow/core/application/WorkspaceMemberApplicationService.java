@@ -5,13 +5,18 @@ import com.liteworkflow.common.core.error.BizException;
 import com.liteworkflow.common.core.error.CommonErrorCode;
 import com.liteworkflow.core.domain.AccountStatus;
 import com.liteworkflow.core.domain.MemberStatus;
+import com.liteworkflow.core.domain.ProjectMember;
+import com.liteworkflow.core.domain.ProjectRole;
 import com.liteworkflow.core.domain.UserDirectory;
 import com.liteworkflow.core.domain.Workspace;
 import com.liteworkflow.core.domain.WorkspaceMember;
 import com.liteworkflow.core.domain.WorkspaceRole;
 import com.liteworkflow.core.dto.response.WorkspaceMemberResponse;
 import com.liteworkflow.core.outbox.ActivityOutboxService;
+import com.liteworkflow.core.outbox.ProjectMemberEventPayload;
 import com.liteworkflow.core.outbox.WorkspaceMemberEventPayload;
+import com.liteworkflow.core.repository.ProjectMemberRepository;
+import com.liteworkflow.core.repository.ProjectRepository;
 import com.liteworkflow.core.repository.UserDirectoryRepository;
 import com.liteworkflow.core.repository.WorkspaceMemberRepository;
 import com.liteworkflow.core.repository.WorkspaceRepository;
@@ -32,6 +37,8 @@ public class WorkspaceMemberApplicationService {
     private final PermissionService permissionService;
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository memberRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final UserDirectoryRepository userDirectoryRepository;
     private final ActivityOutboxService activityOutboxService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -41,6 +48,8 @@ public class WorkspaceMemberApplicationService {
             PermissionService permissionService,
             WorkspaceRepository workspaceRepository,
             WorkspaceMemberRepository memberRepository,
+            ProjectRepository projectRepository,
+            ProjectMemberRepository projectMemberRepository,
             UserDirectoryRepository userDirectoryRepository,
             ActivityOutboxService activityOutboxService,
             ApplicationEventPublisher applicationEventPublisher,
@@ -48,6 +57,8 @@ public class WorkspaceMemberApplicationService {
         this.permissionService = permissionService;
         this.workspaceRepository = workspaceRepository;
         this.memberRepository = memberRepository;
+        this.projectRepository = projectRepository;
+        this.projectMemberRepository = projectMemberRepository;
         this.userDirectoryRepository = userDirectoryRepository;
         this.activityOutboxService = activityOutboxService;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -100,7 +111,7 @@ public class WorkspaceMemberApplicationService {
                 member.getId(),
                 actorId,
                 new WorkspaceMemberEventPayload(userId, requestedRole, null));
-        applicationEventPublisher.publishEvent(new WorkspacePermissionInvalidation(workspaceId, userId));
+        invalidateWorkspaceAndProjects(workspaceId, userId);
         return WorkspaceMemberResponse.from(member, user, true);
     }
 
@@ -126,7 +137,7 @@ public class WorkspaceMemberApplicationService {
                 member.getId(),
                 actorId,
                 new WorkspaceMemberEventPayload(userId, requestedRole, previousRole));
-        applicationEventPublisher.publishEvent(new WorkspacePermissionInvalidation(workspaceId, userId));
+        invalidateWorkspaceAndProjects(workspaceId, userId);
         return WorkspaceMemberResponse.from(member, requireUser(userId), true);
     }
 
@@ -148,7 +159,19 @@ public class WorkspaceMemberApplicationService {
                 member.getId(),
                 actorId,
                 new WorkspaceMemberEventPayload(userId, null, previousRole));
-        applicationEventPublisher.publishEvent(new WorkspacePermissionInvalidation(workspaceId, userId));
+        for (ProjectMember projectMember
+                : projectMemberRepository.findActiveByWorkspaceIdAndUserIdForUpdate(workspaceId, userId)) {
+            ProjectRole previousProjectRole = projectMember.getRole();
+            projectMember.remove(clock.instant());
+            activityOutboxService.recordProjectMemberChange(
+                    "project.member.removed",
+                    workspaceId,
+                    projectMember.getProjectId(),
+                    projectMember.getId(),
+                    actorId,
+                    new ProjectMemberEventPayload(userId, null, previousProjectRole));
+        }
+        invalidateWorkspaceAndProjects(workspaceId, userId);
     }
 
     private Workspace lockWorkspace(UUID workspaceId) {
@@ -204,5 +227,11 @@ public class WorkspaceMemberApplicationService {
         if (page < 1 || size < 1 || size > 50) {
             throw new BizException(CommonErrorCode.VALIDATION_ERROR, "Invalid pagination");
         }
+    }
+
+    private void invalidateWorkspaceAndProjects(UUID workspaceId, UUID userId) {
+        applicationEventPublisher.publishEvent(new WorkspacePermissionInvalidation(workspaceId, userId));
+        projectRepository.findActiveIdsByWorkspaceId(workspaceId).forEach(projectId ->
+                applicationEventPublisher.publishEvent(new ProjectPermissionInvalidation(projectId, userId)));
     }
 }

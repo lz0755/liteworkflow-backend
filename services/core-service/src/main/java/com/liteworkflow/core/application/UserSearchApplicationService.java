@@ -4,6 +4,7 @@ import com.liteworkflow.common.core.api.PageResult;
 import com.liteworkflow.common.core.error.BizException;
 import com.liteworkflow.core.domain.UserDirectory;
 import com.liteworkflow.core.dto.response.UserSearchResponse;
+import com.liteworkflow.core.repository.ProjectMemberRepository;
 import com.liteworkflow.core.repository.UserDirectoryRepository;
 import com.liteworkflow.core.repository.WorkspaceMemberRepository;
 import java.util.HashSet;
@@ -26,14 +27,17 @@ public class UserSearchApplicationService {
     private final PermissionService permissionService;
     private final UserDirectoryRepository userDirectoryRepository;
     private final WorkspaceMemberRepository memberRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
     public UserSearchApplicationService(
             PermissionService permissionService,
             UserDirectoryRepository userDirectoryRepository,
-            WorkspaceMemberRepository memberRepository) {
+            WorkspaceMemberRepository memberRepository,
+            ProjectMemberRepository projectMemberRepository) {
         this.permissionService = permissionService;
         this.userDirectoryRepository = userDirectoryRepository;
         this.memberRepository = memberRepository;
+        this.projectMemberRepository = projectMemberRepository;
     }
 
     @Transactional(readOnly = true)
@@ -41,28 +45,44 @@ public class UserSearchApplicationService {
             UUID actorId,
             String keyword,
             String contextType,
-            UUID workspaceId,
+            UUID contextId,
             boolean excludeExistingMembers,
             int page,
             int size) {
-        if (!"WORKSPACE".equalsIgnoreCase(contextType)) {
-            throw new BizException(CoreErrorCode.USER_SEARCH_CONTEXT_UNSUPPORTED);
-        }
-        permissionService.requireWorkspaceMemberManager(workspaceId, actorId);
         String normalizedKeyword = normalizeKeyword(keyword);
         validatePage(page, size);
         String pattern = "%" + normalizedKeyword + "%";
         PageRequest pageable = PageRequest.of(page - 1, size);
+        if ("WORKSPACE".equalsIgnoreCase(contextType)) {
+            return searchWorkspace(
+                    actorId, contextId, keyword, pattern, excludeExistingMembers, page, size, pageable);
+        }
+        if ("PROJECT".equalsIgnoreCase(contextType)) {
+            return searchProject(
+                    actorId, contextId, keyword, pattern, excludeExistingMembers, page, size, pageable);
+        }
+        throw new BizException(CoreErrorCode.USER_SEARCH_CONTEXT_UNSUPPORTED);
+    }
+
+    private PageResult<UserSearchResponse> searchWorkspace(
+            UUID actorId,
+            UUID workspaceId,
+            String keyword,
+            String pattern,
+            boolean excludeExistingMembers,
+            int page,
+            int size,
+            PageRequest pageable) {
+        permissionService.requireWorkspaceMemberManager(workspaceId, actorId);
         Page<UserDirectory> result = excludeExistingMembers
                 ? userDirectoryRepository.searchActiveExcludingWorkspaceMembers(pattern, workspaceId, pageable)
                 : userDirectoryRepository.searchActive(pattern, pageable);
-
         List<UUID> resultIds = result.getContent().stream().map(UserDirectory::getUserId).toList();
         Set<UUID> existingMemberIds = resultIds.isEmpty()
                 ? Set.of()
                 : new HashSet<>(memberRepository.findActiveUserIdsByWorkspaceIdAndUserIdIn(workspaceId, resultIds));
         List<UserSearchResponse> records = result.getContent().stream()
-                .map(user -> toResponse(user, existingMemberIds.contains(user.getUserId())))
+                .map(user -> toWorkspaceResponse(user, existingMemberIds.contains(user.getUserId())))
                 .toList();
         log.info(
                 "Workspace user search completed workspaceId={}, keywordLength={}, resultCount={}",
@@ -72,15 +92,58 @@ public class UserSearchApplicationService {
         return PageResult.of(records, result.getTotalElements(), page, size);
     }
 
-    private UserSearchResponse toResponse(UserDirectory user, boolean existingMember) {
+    private PageResult<UserSearchResponse> searchProject(
+            UUID actorId,
+            UUID projectId,
+            String keyword,
+            String pattern,
+            boolean excludeExistingMembers,
+            int page,
+            int size,
+            PageRequest pageable) {
+        permissionService.requireProjectMemberManager(projectId, actorId);
+        Page<UserDirectory> result = excludeExistingMembers
+                ? userDirectoryRepository.searchActiveWorkspaceMembersExcludingProjectMembers(
+                        pattern, projectId, pageable)
+                : userDirectoryRepository.searchActiveWorkspaceMembersForProject(pattern, projectId, pageable);
+        List<UUID> resultIds = result.getContent().stream().map(UserDirectory::getUserId).toList();
+        Set<UUID> existingMemberIds = resultIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(projectMemberRepository.findActiveUserIdsByProjectIdAndUserIdIn(
+                        projectId, resultIds));
+        List<UserSearchResponse> records = result.getContent().stream()
+                .map(user -> toProjectResponse(user, existingMemberIds.contains(user.getUserId())))
+                .toList();
+        log.info(
+                "Project user search completed projectId={}, keywordLength={}, resultCount={}",
+                projectId,
+                keyword.trim().length(),
+                records.size());
+        return PageResult.of(records, result.getTotalElements(), page, size);
+    }
+
+    private UserSearchResponse toWorkspaceResponse(UserDirectory user, boolean existingMember) {
         return new UserSearchResponse(
                 user.getUserId(),
                 user.getDisplayName(),
                 user.getEmailDisplay(),
                 user.getAvatarFileId(),
                 existingMember,
+                false,
                 !existingMember,
                 existingMember ? CoreErrorCode.WORKSPACE_MEMBER_ALREADY_EXISTS.name() : null);
+    }
+
+    private UserSearchResponse toProjectResponse(UserDirectory user, boolean existingMember) {
+        return new UserSearchResponse(
+                user.getUserId(),
+                user.getDisplayName(),
+                user.getEmailDisplay(),
+                user.getAvatarFileId(),
+                true,
+                existingMember,
+                !existingMember,
+                existingMember ? CoreErrorCode.PROJECT_MEMBER_ALREADY_EXISTS.name() : null);
     }
 
     private String normalizeKeyword(String keyword) {
