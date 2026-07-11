@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.liteworkflow</groupId>
+        <artifactId>liteworkflow</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>m4-smoke-test</artifactId>
+    <name>M4 real-infrastructure smoke test</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.liteworkflow</groupId>
+            <artifactId>gateway-service</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.liteworkflow</groupId>
+            <artifactId>identity-service</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.liteworkflow</groupId>
+            <artifactId>core-service</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Spring Boot repackages service artifacts during verify; use their reactor classes directly. -->
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${maven.multiModuleProjectDirectory}/services/gateway-service/target/classes</additionalClasspathElement>
+                        <additionalClasspathElement>${maven.multiModuleProjectDirectory}/services/identity-service/target/classes</additionalClasspathElement>
+                        <additionalClasspathElement>${maven.multiModuleProjectDirectory}/services/core-service/target/classes</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

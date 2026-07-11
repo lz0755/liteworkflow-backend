@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:core;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;INIT=CREATE SCHEMA IF NOT EXISTS core
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: core
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+  data:
+    redis:
+      repositories:
+        enabled: false
+  task:
+    scheduling:
+      enabled: false
+
+liteworkflow:
+  security:
+    jwt:
+      secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      issuer: liteworkflow-test
+  core:
+    permission-cache-enabled: false
+    outbox:
+      immediate-publish: false
+      scheduling-enabled: false
+      retry-delay: 1ms
+
+management:
+  health:
+    rabbit:
+      enabled: false
+    redis:
+      enabled: false
+
+logging:
+  level:
+    org.hibernate.SQL: WARN

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liteworkflow.identity.domain.LocalOutboxEvent;
 import java.time.Duration;
 import java.time.Instant;
@@ -87,7 +88,8 @@ class RabbitIdentityEventPublisherTest {
                 "identity.user.registered",
                 "IDENTITY_USER",
                 UUID.randomUUID(),
-                "{\"payload\":{\"version\":1}}",
+                new ObjectMapper().createObjectNode()
+                        .set("payload", new ObjectMapper().createObjectNode().put("version", 1)),
                 now);
     }
 }

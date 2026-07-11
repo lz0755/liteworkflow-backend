@@ -1,4 +1,4 @@
-package com.liteworkflow.identity.domain;
+package com.liteworkflow.core.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
@@ -13,7 +13,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(schema = "identity", name = "local_outbox_events")
+@Table(schema = "core", name = "local_outbox_events")
 public class LocalOutboxEvent {
 
     @Id
@@ -34,12 +34,21 @@ public class LocalOutboxEvent {
     @Column(name = "aggregate_id", nullable = false)
     private UUID aggregateId;
 
+    @Column(name = "workspace_id")
+    private UUID workspaceId;
+
+    @Column(name = "project_id")
+    private UUID projectId;
+
+    @Column(name = "actor_id")
+    private UUID actorId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload_json", nullable = false, columnDefinition = "json")
     private JsonNode payloadJson;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, length = 32)
     private OutboxStatus status;
 
     @Column(name = "retry_count", nullable = false)
@@ -70,6 +79,9 @@ public class LocalOutboxEvent {
             String routingKey,
             String aggregateType,
             UUID aggregateId,
+            UUID workspaceId,
+            UUID projectId,
+            UUID actorId,
             JsonNode payloadJson,
             Instant now) {
         this.id = id;
@@ -78,6 +90,9 @@ public class LocalOutboxEvent {
         this.routingKey = routingKey;
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
+        this.workspaceId = workspaceId;
+        this.projectId = projectId;
+        this.actorId = actorId;
         this.payloadJson = payloadJson;
         this.status = OutboxStatus.PENDING;
         this.createdAt = now;

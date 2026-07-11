@@ -1,6 +1,6 @@
 package com.liteworkflow.identity.outbox;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liteworkflow.common.core.event.EventEnvelope;
 import com.liteworkflow.common.core.event.EventScope;
@@ -66,11 +66,7 @@ public class IdentityOutboxService {
         applicationEventPublisher.publishEvent(new OutboxQueued(outboxEvent.getId()));
     }
 
-    private String serialize(EventEnvelope<IdentityUserEventPayload> envelope) {
-        try {
-            return objectMapper.writeValueAsString(envelope);
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Could not serialize identity user event", exception);
-        }
+    private JsonNode serialize(EventEnvelope<IdentityUserEventPayload> envelope) {
+        return objectMapper.valueToTree(envelope);
     }
 }

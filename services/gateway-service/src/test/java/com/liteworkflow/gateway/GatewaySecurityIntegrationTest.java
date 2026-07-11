@@ -162,6 +162,22 @@ class GatewaySecurityIntegrationTest {
                 .expectHeader().valueEquals("X-Echo-" + GatewayHeaders.USERNAME, "alice")
                 .expectHeader().valueEquals("X-Echo-" + GatewayHeaders.USER_ROLES, "MEMBER,OWNER")
                 .expectHeader().valueEquals("X-Echo-Path", "/api/v1/users/search?q=ali");
+        verify(userSearchRateLimiter).isAllowed("core-user-search", "user:" + USER_ID);
+    }
+
+    @Test
+    void userSearchRateLimitReturnsTooManyRequests() {
+        when(userSearchRateLimiter.isAllowed(anyString(), anyString()))
+                .thenReturn(Mono.just(new RateLimiter.Response(false, Map.of())));
+
+        client.get()
+                .uri("/api/v1/users/search?keyword=alice&contextType=WORKSPACE"
+                        + "&contextId=11111111-2222-3333-4444-555555555555")
+                .headers(headers -> headers.setBearerAuth(token()))
+                .exchange()
+                .expectStatus().isEqualTo(429);
+
+        verify(userSearchRateLimiter).isAllowed("core-user-search", "user:" + USER_ID);
     }
 
     @Test
