@@ -52,6 +52,9 @@ liteworkflow:
     max-output-tokens: ${LITEWORKFLOW_AI_MAX_OUTPUT_TOKENS:2000}
     max-concurrent-requests: ${LITEWORKFLOW_AI_MAX_CONCURRENT_REQUESTS:8}
     concurrency-acquire-timeout: ${LITEWORKFLOW_AI_CONCURRENCY_ACQUIRE_TIMEOUT:100ms}
+    max-concurrent-streams: ${LITEWORKFLOW_AI_MAX_CONCURRENT_STREAMS:4}
+    stream-concurrency-acquire-timeout: ${LITEWORKFLOW_AI_STREAM_CONCURRENCY_ACQUIRE_TIMEOUT:50ms}
+    stream-idle-timeout: ${LITEWORKFLOW_AI_STREAM_IDLE_TIMEOUT:60s}
     daily-request-limit: ${LITEWORKFLOW_AI_DAILY_REQUEST_LIMIT:100}
     daily-token-limit: ${LITEWORKFLOW_AI_DAILY_TOKEN_LIMIT:200000}
 
@@ -75,7 +78,10 @@ logging:
     # when an operator temporarily lowers the root level.
     org.springframework.web.client: INFO
     org.springframework.web.servlet.mvc.method.annotation: INFO
+    org.springframework.web.servlet.mvc.method.annotation.ReactiveTypeHandler: INFO
     org.springframework.ai.openai: INFO
+    # Spring AI's stream aggregator logs upstream exceptions (including response bodies) by default.
+    org.springframework.ai.chat.model.MessageAggregator: OFF
     # Defense in depth: this converter logs malformed model output at WARN.
     # ai-service performs its own Jackson + Bean Validation conversion instead.
     org.springframework.ai.converter.BeanOutputConverter: OFF

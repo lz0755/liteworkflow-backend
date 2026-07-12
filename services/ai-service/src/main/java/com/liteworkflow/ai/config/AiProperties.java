@@ -24,6 +24,9 @@ public class AiProperties {
     @Min(1) private int maxOutputTokens = 2000;
     @Min(1) private int maxConcurrentRequests = 8;
     @NotNull private Duration concurrencyAcquireTimeout = Duration.ofMillis(100);
+    @Min(1) private int maxConcurrentStreams = 4;
+    @NotNull private Duration streamConcurrencyAcquireTimeout = Duration.ofMillis(50);
+    @NotNull private Duration streamIdleTimeout = Duration.ofSeconds(60);
     @Min(1) private int dailyRequestLimit = 100;
     @Min(1) private long dailyTokenLimit = 200_000;
 
@@ -70,7 +73,11 @@ public class AiProperties {
 
     @AssertTrue(message = "AI timeouts must be positive")
     public boolean areTimeoutsPositive() {
-        return positive(connectTimeout) && positive(requestTimeout) && positive(concurrencyAcquireTimeout);
+        return positive(connectTimeout)
+                && positive(requestTimeout)
+                && positive(concurrencyAcquireTimeout)
+                && positive(streamConcurrencyAcquireTimeout)
+                && positive(streamIdleTimeout);
     }
 
     private static boolean positive(Duration duration) {
@@ -121,6 +128,12 @@ public class AiProperties {
     public void setMaxConcurrentRequests(int maxConcurrentRequests) { this.maxConcurrentRequests = maxConcurrentRequests; }
     public Duration getConcurrencyAcquireTimeout() { return concurrencyAcquireTimeout; }
     public void setConcurrencyAcquireTimeout(Duration concurrencyAcquireTimeout) { this.concurrencyAcquireTimeout = concurrencyAcquireTimeout; }
+    public int getMaxConcurrentStreams() { return maxConcurrentStreams; }
+    public void setMaxConcurrentStreams(int maxConcurrentStreams) { this.maxConcurrentStreams = maxConcurrentStreams; }
+    public Duration getStreamConcurrencyAcquireTimeout() { return streamConcurrencyAcquireTimeout; }
+    public void setStreamConcurrencyAcquireTimeout(Duration streamConcurrencyAcquireTimeout) { this.streamConcurrencyAcquireTimeout = streamConcurrencyAcquireTimeout; }
+    public Duration getStreamIdleTimeout() { return streamIdleTimeout; }
+    public void setStreamIdleTimeout(Duration streamIdleTimeout) { this.streamIdleTimeout = streamIdleTimeout; }
     public int getDailyRequestLimit() { return dailyRequestLimit; }
     public void setDailyRequestLimit(int dailyRequestLimit) { this.dailyRequestLimit = dailyRequestLimit; }
     public long getDailyTokenLimit() { return dailyTokenLimit; }

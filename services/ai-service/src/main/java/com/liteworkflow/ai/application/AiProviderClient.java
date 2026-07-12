@@ -14,31 +14,38 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.StreamingChatModel;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
+import reactor.core.publisher.Flux;
 
 @Component
 public class AiProviderClient {
 
     private final ChatClient chatClient;
+    private final StreamingChatModel streamingChatModel;
     private final AiProperties properties;
     private final Validator validator;
     private final ObjectMapper objectMapper;
 
     public AiProviderClient(
             ChatClient chatClient,
+            StreamingChatModel streamingChatModel,
             AiProperties properties,
             Validator validator,
             ObjectMapper objectMapper) {
         this.chatClient = chatClient;
+        this.streamingChatModel = streamingChatModel;
         this.properties = properties;
         this.validator = validator;
         this.objectMapper = objectMapper;
@@ -51,6 +58,18 @@ public class AiProviderClient {
             throw new AiCallFailure(AiErrorCode.INVALID_STRUCTURED_OUTPUT, usage(response), null);
         }
         return new AiProviderResult<>(content, content, usage(response), model(response));
+    }
+
+    public Flux<AiProviderStreamChunk> streamText(
+            String systemPrompt, List<Message> history, String userPrompt) {
+        List<Message> promptMessages = messages(systemPrompt, history, userPrompt);
+        return Flux.defer(() -> streamingChatModel.stream(new Prompt(promptMessages)))
+                // Apply demand control at the model boundary, before any response transformation.
+                .limitRate(1)
+                .map(this::streamChunk)
+                .onErrorMap(exception -> exception instanceof AiCallFailure
+                        ? exception
+                        : failure(exception));
     }
 
     public <T> AiProviderResult<T> structured(
@@ -100,9 +119,16 @@ public class AiProviderClient {
         } catch (AiCallFailure failure) {
             throw failure;
         } catch (RuntimeException exception) {
-            throw new AiCallFailure(
-                    map(exception), AiTokenUsage.ZERO, responseLength(exception), exception);
+            throw failure(exception);
         }
+    }
+
+    AiCallFailure failure(Throwable exception) {
+        if (exception instanceof AiCallFailure failure) {
+            return failure;
+        }
+        return new AiCallFailure(
+                map(exception), AiTokenUsage.ZERO, responseLength(exception), exception);
     }
 
     private static int responseLength(Throwable failure) {
@@ -135,6 +161,7 @@ public class AiProviderClient {
             }
             if (current instanceof HttpTimeoutException
                     || current instanceof SocketTimeoutException
+                    || current instanceof TimeoutException
                     || isTimeoutResourceAccess(current)
                     || isJdkReadTimeout(current)) {
                 return AiErrorCode.PROVIDER_TIMEOUT;
@@ -181,6 +208,16 @@ public class AiProviderClient {
             return response.getMetadata().getModel();
         }
         return properties.getChatModel();
+    }
+
+    private AiProviderStreamChunk streamChunk(ChatResponse response) {
+        String finishReason = null;
+        if (response != null && response.getResult() != null
+                && response.getResult().getMetadata() != null) {
+            finishReason = response.getResult().getMetadata().getFinishReason();
+        }
+        return new AiProviderStreamChunk(
+                content(response), usage(response), model(response), finishReason);
     }
 
     private static String content(ChatResponse response) {

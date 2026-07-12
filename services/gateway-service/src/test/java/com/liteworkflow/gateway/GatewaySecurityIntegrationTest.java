@@ -9,9 +9,13 @@ import com.liteworkflow.common.core.trace.TraceConstants;
 import com.liteworkflow.common.security.jwt.JwtTokenService;
 import com.liteworkflow.common.security.user.CurrentUser;
 import com.liteworkflow.gateway.trace.GatewayHeaders;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,13 +26,19 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.reactive.server.FluxExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
@@ -41,6 +51,10 @@ import reactor.netty.http.server.HttpServer;
 class GatewaySecurityIntegrationTest {
 
     private static final UUID USER_ID = UUID.fromString("11111111-2222-3333-4444-555555555555");
+    private static final ParameterizedTypeReference<ServerSentEvent<String>> SSE_TYPE =
+            new ParameterizedTypeReference<>() { };
+    private static final AtomicReference<CountDownLatch> SSE_CANCELLATION =
+            new AtomicReference<>(new CountDownLatch(0));
     private static DisposableServer downstream;
 
     @LocalServerPort
@@ -72,6 +86,10 @@ class GatewaySecurityIntegrationTest {
                 .host("127.0.0.1")
                 .port(0)
                 .handle((request, response) -> {
+                    if ("true".equals(request.requestHeaders().get("X-Test-Infinite-Sse"))) {
+                        response.header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE);
+                        return response.sendString(infiniteSse());
+                    }
                     copyAsEchoHeader(request.requestHeaders(), response, GatewayHeaders.USER_ID);
                     copyAsEchoHeader(request.requestHeaders(), response, GatewayHeaders.USERNAME);
                     copyAsEchoHeader(request.requestHeaders(), response, GatewayHeaders.USER_ROLES);
@@ -260,6 +278,29 @@ class GatewaySecurityIntegrationTest {
     }
 
     @Test
+    void gatewayDisconnectCancelsInfiniteDownstreamSse() throws Exception {
+        CountDownLatch cancelled = new CountDownLatch(1);
+        SSE_CANCELLATION.set(cancelled);
+
+        FluxExchangeResult<ServerSentEvent<String>> result = client.post()
+                .uri("/api/v1/ai/assist/stream")
+                .headers(headers -> headers.setBearerAuth(token()))
+                .header("X-Test-Infinite-Sse", "true")
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .exchange()
+                .expectStatus().isOk()
+                .returnResult(SSE_TYPE);
+
+        StepVerifier.create(result.getResponseBody())
+                .expectNextMatches(event -> "context".equals(event.event()))
+                .expectNextMatches(event -> "delta".equals(event.event()))
+                .thenCancel()
+                .verify();
+
+        assertThat(cancelled.await(2, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
     void nonStreamingAiUsesItsOwnRateLimitBucket() {
         client.post()
                 .uri("/api/v1/ai/assist")
@@ -276,6 +317,16 @@ class GatewaySecurityIntegrationTest {
 
     private static String downstreamUrl() {
         return "http://127.0.0.1:" + downstream.port();
+    }
+
+    private static Flux<String> infiniteSse() {
+        Flux<String> firstEvents = Flux.just(
+                "event: context\ndata: {\"conversationId\":\"test\"}\n\n",
+                "event: delta\ndata: {\"text\":\"first\"}\n\n");
+        Flux<String> remaining = Flux.interval(Duration.ofMillis(20))
+                .map(sequence -> "event: delta\ndata: {\"text\":\"" + sequence + "\"}\n\n");
+        return Flux.concat(firstEvents, remaining)
+                .doOnCancel(() -> SSE_CANCELLATION.get().countDown());
     }
 
     private static void copyAsEchoHeader(

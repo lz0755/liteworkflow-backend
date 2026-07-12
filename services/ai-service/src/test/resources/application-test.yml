@@ -33,5 +33,8 @@ liteworkflow:
     max-output-tokens: 100
     max-concurrent-requests: 2
     concurrency-acquire-timeout: 50ms
+    max-concurrent-streams: 2
+    stream-concurrency-acquire-timeout: 20ms
+    stream-idle-timeout: 500ms
     daily-request-limit: 100
     daily-token-limit: 100000

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -52,6 +53,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableMessage() {
         return validationFailure("Request body is missing or malformed");
+    }
+
+    /** The response is already unusable after an SSE client disconnects; do not log or rewrite it. */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleDisconnectedClient() {
+        // Cancellation has already propagated through the reactive response publisher.
     }
 
     @ExceptionHandler(Exception.class)

@@ -46,6 +46,7 @@ class AiTokenBudgetTest {
         properties.setMaxOutputTokens(100);
         return new AiProviderClient(
                 mock(ChatClient.class),
+                mock(org.springframework.ai.chat.model.StreamingChatModel.class),
                 properties,
                 Validation.buildDefaultValidatorFactory().getValidator(),
                 new ObjectMapper());
