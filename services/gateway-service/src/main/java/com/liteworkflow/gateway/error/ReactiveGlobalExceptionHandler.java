@@ -6,8 +6,10 @@ import com.liteworkflow.common.core.api.ApiResponse;
 import com.liteworkflow.common.core.error.BizException;
 import com.liteworkflow.common.core.error.CommonErrorCode;
 import com.liteworkflow.common.core.error.ErrorCode;
+import com.liteworkflow.common.core.trace.MdcScope;
 import com.liteworkflow.common.core.trace.TraceConstants;
 import java.time.Instant;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -49,7 +51,11 @@ public final class ReactiveGlobalExceptionHandler implements WebExceptionHandler
         } else {
             errorCode = CommonErrorCode.INTERNAL_ERROR;
             message = errorCode.defaultMessage();
-            log.error("Unhandled gateway request failure", exception);
+            String traceId = exchange.getAttribute(TraceConstants.REACTOR_CONTEXT_KEY);
+            try (MdcScope ignored = MdcScope.open(Map.of(
+                    TraceConstants.TRACE_ID, traceId == null ? "unknown" : traceId))) {
+                log.error("Unhandled gateway request failure", exception);
+            }
         }
 
         String traceId = exchange.getAttribute(TraceConstants.REACTOR_CONTEXT_KEY);

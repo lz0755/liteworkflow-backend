@@ -1,7 +1,13 @@
 package com.liteworkflow.gateway.trace;
 
+import com.liteworkflow.common.core.logging.SensitiveDataSanitizer;
+import com.liteworkflow.common.core.trace.MdcScope;
 import com.liteworkflow.common.core.trace.TraceConstants;
 import com.liteworkflow.common.core.trace.TraceIds;
+import com.liteworkflow.common.security.user.CurrentUser;
+import com.liteworkflow.gateway.security.JwtAuthenticationWebFilter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -22,6 +28,7 @@ public final class ReactiveTraceIdFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        long startedAt = System.nanoTime();
         String traceId = TraceIds.resolve(
                 exchange.getRequest().getHeaders().getFirst(TraceConstants.TRACE_ID_HEADER));
         ServerWebExchange trustedExchange = exchange.mutate()
@@ -33,30 +40,33 @@ public final class ReactiveTraceIdFilter implements WebFilter {
                 .build();
         trustedExchange.getAttributes().put(TraceConstants.REACTOR_CONTEXT_KEY, traceId);
         trustedExchange.getResponse().getHeaders().set(TraceConstants.TRACE_ID_HEADER, traceId);
-        logWithTrace(traceId, () -> log.debug(
-                "Gateway request started method={} path={}",
-                trustedExchange.getRequest().getMethod(),
-                trustedExchange.getRequest().getPath()));
 
         return chain.filter(trustedExchange)
                 .contextWrite(context -> context.put(TraceConstants.REACTOR_CONTEXT_KEY, traceId))
-                .doFinally(signal -> logWithTrace(traceId, () -> log.debug(
-                        "Gateway request completed path={} signal={}",
-                        trustedExchange.getRequest().getPath(),
-                        signal)));
+                .doFinally(signal -> logCompletion(trustedExchange, traceId, startedAt, signal.name()));
     }
 
-    private static void logWithTrace(String traceId, Runnable action) {
-        String previous = MDC.get(TraceConstants.TRACE_ID);
-        MDC.put(TraceConstants.TRACE_ID, traceId);
-        try {
-            action.run();
-        } finally {
-            if (previous == null) {
-                MDC.remove(TraceConstants.TRACE_ID);
-            } else {
-                MDC.put(TraceConstants.TRACE_ID, previous);
-            }
+    private static void logCompletion(
+            ServerWebExchange exchange, String traceId, long startedAt, String signal) {
+        Map<String, String> context = new LinkedHashMap<>();
+        context.put(TraceConstants.TRACE_ID, traceId);
+        context.put(TraceConstants.REQUEST_METHOD, exchange.getRequest().getMethod().name());
+        context.put(
+                TraceConstants.REQUEST_PATH,
+                SensitiveDataSanitizer.sanitizeSingleLine(exchange.getRequest().getPath().value()));
+        CurrentUser currentUser = exchange.getAttribute(JwtAuthenticationWebFilter.CURRENT_USER_ATTRIBUTE);
+        if (currentUser != null) {
+            context.put(TraceConstants.USER_ID, currentUser.userId().toString());
+        }
+        try (MdcScope ignored = MdcScope.open(context)) {
+            int status = exchange.getResponse().getStatusCode() == null
+                    ? ("ON_ERROR".equals(signal) ? 500 : 200)
+                    : exchange.getResponse().getStatusCode().value();
+            MDC.put(TraceConstants.STATUS, Integer.toString(status));
+            MDC.put(
+                    TraceConstants.LATENCY_MS,
+                    Long.toString(Math.max(0L, (System.nanoTime() - startedAt) / 1_000_000L)));
+            log.info("Gateway request completed signal={}", signal);
         }
     }
 }

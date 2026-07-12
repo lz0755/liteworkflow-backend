@@ -92,6 +92,20 @@ public class Notification {
     public UUID getId() { return id; }
     public UUID getRecipientUserId() { return recipientUserId; }
     public NotificationType getNotificationType() { return notificationType; }
+    public String getResourceType() { return resourceType; }
     public UUID getResourceId() { return resourceId; }
+    public UUID getActorId() { return actorId; }
+    public UUID getWorkspaceId() { return workspaceId; }
+    public UUID getProjectId() { return projectId; }
+    public String getTitle() { return title; }
+    public String getMessage() { return message; }
     public UUID getSourceEventId() { return sourceEventId; }
+    public Instant getReadAt() { return readAt; }
+    public Instant getCreatedAt() { return createdAt; }
+
+    public void markRead(Instant now) {
+        if (readAt == null) {
+            readAt = now;
+        }
+    }
 }

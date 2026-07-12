@@ -1,3 +1,11 @@
 springdoc:
   api-docs:
     enabled: false
+
+# AWS S3 switch: set S3_BUCKET/S3_REGION, leave S3_ENDPOINT and static credentials empty,
+# and use the standard AWS credential chain. SeaweedFS can use the same profile by setting them.
+liteworkflow:
+  storage:
+    s3:
+      endpoint: ${S3_ENDPOINT:}
+      path-style: ${S3_PATH_STYLE:false}

@@ -27,6 +27,10 @@ spring:
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: ${RABBITMQ_VHOST:/}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
     listener:
       simple:
         default-requeue-rejected: false
@@ -36,6 +40,57 @@ spring:
           initial-interval: 500ms
           multiplier: 2
           max-interval: 5s
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    properties:
+      mail.smtp.connectiontimeout: ${SMTP_CONNECTION_TIMEOUT_MS:5000}
+      mail.smtp.timeout: ${SMTP_READ_TIMEOUT_MS:5000}
+      mail.smtp.writetimeout: ${SMTP_WRITE_TIMEOUT_MS:5000}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 51MB
+
+liteworkflow:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      issuer: ${JWT_ISSUER:liteworkflow}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+      clock-skew: ${JWT_CLOCK_SKEW:30s}
+  storage:
+    core-service-url: ${CORE_SERVICE_URL:http://localhost:8082}
+    internal-token: ${INTERNAL_SERVICE_TOKEN:change-me-internal-token}
+    scheduling-enabled: ${FILE_SCHEDULING_ENABLED:true}
+    s3:
+      bucket: ${S3_BUCKET:${SEAWEEDFS_BUCKET:liteworkflow}}
+      region: ${S3_REGION:us-east-1}
+      endpoint: ${S3_ENDPOINT:http://localhost:8333}
+      access-key: ${S3_ACCESS_KEY:${SEAWEEDFS_ACCESS_KEY:}}
+      secret-key: ${S3_SECRET_KEY:${SEAWEEDFS_SECRET_KEY:}}
+      path-style: ${S3_PATH_STYLE:true}
+    limits:
+      avatar-bytes: ${FILE_AVATAR_MAX_BYTES:5242880}
+      icon-bytes: ${FILE_ICON_MAX_BYTES:5242880}
+      attachment-bytes: ${FILE_ATTACHMENT_MAX_BYTES:26214400}
+      document-bytes: ${FILE_DOCUMENT_MAX_BYTES:52428800}
+  notification:
+    core-service-url: ${CORE_SERVICE_URL:http://localhost:8082}
+    internal-token: ${INTERNAL_SERVICE_TOKEN:change-me-internal-token}
+    web-base-url: ${LITEWORKFLOW_WEB_BASE_URL:http://localhost:3000}
+    email:
+      from: ${SMTP_FROM:no-reply@liteworkflow.local}
+      max-attempts: ${EMAIL_MAX_ATTEMPTS:5}
+      retry-delay: ${EMAIL_RETRY_DELAY:10s}
+      batch-size: ${EMAIL_BATCH_SIZE:25}
+      dispatch-delay: ${EMAIL_DISPATCH_DELAY:5s}
+      scheduling-enabled: ${EMAIL_SCHEDULING_ENABLED:true}
+  export:
+    scheduling-enabled: ${EXPORT_SCHEDULING_ENABLED:true}
+    max-publish-attempts: ${EXPORT_MAX_PUBLISH_ATTEMPTS:12}
+    retry-delay: ${EXPORT_PUBLISH_RETRY_DELAY:10s}
+    publisher-confirm-timeout: ${EXPORT_PUBLISHER_CONFIRM_TIMEOUT:5s}
 
 management:
   endpoints:

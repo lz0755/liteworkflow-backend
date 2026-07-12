@@ -34,6 +34,15 @@
             <artifactId>common-mq</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.liteworkflow</groupId>
+            <artifactId>common-file</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.4.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>

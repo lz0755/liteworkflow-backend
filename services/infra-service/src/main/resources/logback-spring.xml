@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="SERVICE_NAME" source="spring.application.name"
+                    defaultValue="infra-service"/>
+    <springProperty scope="context" name="ROOT_LOG_LEVEL" source="logging.level.root"
+                    defaultValue="INFO"/>
+    <include resource="com/liteworkflow/common/logging/logback-common.xml"/>
+    <root level="${ROOT_LOG_LEVEL}">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="APPLICATION_FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+</configuration>

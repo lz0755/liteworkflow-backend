@@ -50,6 +50,13 @@ public class GatewayRouteConfiguration {
         routes.route("infra-issue-attachments", route -> route
                 .path("/api/v1/issues/{issueId}/attachments")
                 .uri(properties.getServices().getInfra()));
+        routes.route("infra-file-owned-resources", route -> route
+                .path(
+                        "/api/v1/users/me/avatar",
+                        "/api/v1/workspaces/{workspaceId}/icon",
+                        "/api/v1/projects/{projectId}/icon",
+                        "/api/v1/projects/{projectId}/documents")
+                .uri(properties.getServices().getInfra()));
         routes.route("core-api", route -> route
                 .path(
                         "/api/v1/users/**",

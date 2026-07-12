@@ -30,7 +30,7 @@ public class RabbitCoreEventPublisher implements CoreEventPublisher {
                 .setHeader(EventHeaders.EVENT_ID, event.getId().toString())
                 .setHeader(EventHeaders.EVENT_TYPE, event.getEventType())
                 .setHeader(EventHeaders.EVENT_VERSION, 1)
-                .setHeader(EventHeaders.TRACE_ID, TraceIds.current())
+                .setHeader(EventHeaders.TRACE_ID, TraceIds.resolve(TraceIds.current()))
                 .build();
         CorrelationData correlationData = new CorrelationData(event.getId().toString());
         rabbitTemplate.send(event.getExchangeName(), event.getRoutingKey(), message, correlationData);

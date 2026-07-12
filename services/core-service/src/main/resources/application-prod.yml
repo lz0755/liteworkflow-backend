@@ -1,3 +1,9 @@
 springdoc:
   api-docs:
     enabled: false
+
+liteworkflow:
+  export:
+    s3:
+      endpoint: ${S3_ENDPOINT:}
+      path-style: ${S3_PATH_STYLE:false}

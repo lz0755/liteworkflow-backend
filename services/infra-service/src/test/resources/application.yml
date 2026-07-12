@@ -16,8 +16,31 @@ spring:
     listener:
       simple:
         auto-startup: false
+  mail:
+    host: localhost
+    port: 1025
 
 management:
   health:
     rabbit:
       enabled: false
+
+liteworkflow:
+  security:
+    jwt:
+      secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  storage:
+    scheduling-enabled: false
+    s3:
+      access-key: test-access-key
+      secret-key: test-secret-key
+  notification:
+    core-service-url: http://localhost:8082
+    internal-token: internal-test-token
+    web-base-url: http://localhost:3000
+    email:
+      max-attempts: 2
+      retry-delay: 1ms
+      scheduling-enabled: false
+  export:
+    scheduling-enabled: false

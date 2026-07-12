@@ -51,6 +51,38 @@ public class NotificationAmqpConfiguration {
     }
 
     @Bean
+    Binding workspaceMemberAddedNotificationBinding(
+            Queue collaborationNotificationQueue, TopicExchange infraWorkEventExchange) {
+        return BindingBuilder.bind(collaborationNotificationQueue)
+                .to(infraWorkEventExchange)
+                .with("workspace.member.added");
+    }
+
+    @Bean
+    Binding projectMemberAddedNotificationBinding(
+            Queue collaborationNotificationQueue, TopicExchange infraWorkEventExchange) {
+        return BindingBuilder.bind(collaborationNotificationQueue)
+                .to(infraWorkEventExchange)
+                .with("project.member.added");
+    }
+
+    @Bean
+    Binding issueCreatedNotificationBinding(
+            Queue collaborationNotificationQueue, TopicExchange infraWorkEventExchange) {
+        return BindingBuilder.bind(collaborationNotificationQueue)
+                .to(infraWorkEventExchange)
+                .with("issue.created");
+    }
+
+    @Bean
+    Binding issueAssigneesNotificationBinding(
+            Queue collaborationNotificationQueue, TopicExchange infraWorkEventExchange) {
+        return BindingBuilder.bind(collaborationNotificationQueue)
+                .to(infraWorkEventExchange)
+                .with("issue.assignees.changed");
+    }
+
+    @Bean
     Binding issueStateNotificationBinding(
             Queue collaborationNotificationQueue, TopicExchange infraWorkEventExchange) {
         return BindingBuilder.bind(collaborationNotificationQueue)

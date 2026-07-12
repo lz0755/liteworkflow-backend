@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class CoreProperties {
 
     private boolean permissionCacheEnabled = true;
+    private String internalToken = "change-me-internal-token";
     private Outbox outbox = new Outbox();
 
     public boolean isPermissionCacheEnabled() {
@@ -15,6 +16,17 @@ public class CoreProperties {
 
     public void setPermissionCacheEnabled(boolean permissionCacheEnabled) {
         this.permissionCacheEnabled = permissionCacheEnabled;
+    }
+
+    public String getInternalToken() {
+        return internalToken;
+    }
+
+    public void setInternalToken(String internalToken) {
+        if (internalToken == null || internalToken.isBlank()) {
+            throw new IllegalArgumentException("internalToken must not be blank");
+        }
+        this.internalToken = internalToken;
     }
 
     public Outbox getOutbox() {
