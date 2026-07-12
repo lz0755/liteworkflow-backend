@@ -89,4 +89,20 @@ public class Activity {
     public UUID getProjectId() {
         return projectId;
     }
+
+    public String getAggregateType() {
+        return aggregateType;
+    }
+
+    public UUID getAggregateId() {
+        return aggregateId;
+    }
+
+    public JsonNode getPayloadJson() {
+        return payloadJson;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

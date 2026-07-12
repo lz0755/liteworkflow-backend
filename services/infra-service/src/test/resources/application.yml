@@ -22,6 +22,8 @@ spring:
 
 management:
   health:
+    mail:
+      enabled: false
     rabbit:
       enabled: false
 

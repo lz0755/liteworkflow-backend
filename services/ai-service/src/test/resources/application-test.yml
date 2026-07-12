@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ai-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;INIT=CREATE SCHEMA IF NOT EXISTS ai
+    username: sa
+    password:
+  flyway:
+    enabled: true
+    schemas: ai
+    default-schema: ai
+  ai:
+    model:
+      chat: none
+    openai:
+      base-url: http://127.0.0.1
+      api-key: test-profile-placeholder
+      chat:
+        options:
+          model: test-fake-model
+
+liteworkflow:
+  security:
+    jwt:
+      secret: c3VwZXItc2VjcmV0LXRlc3Qta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2ghISE=
+  ai:
+    provider: openai
+    base-url: http://127.0.0.1
+    api-key: test-profile-placeholder
+    chat-model: test-fake-model
+    core-service-url: http://127.0.0.1:8082
+    internal-token: internal-test-token
+    connect-timeout: 100ms
+    request-timeout: 500ms
+    max-output-tokens: 100
+    max-concurrent-requests: 2
+    concurrency-acquire-timeout: 50ms
+    daily-request-limit: 100
+    daily-token-limit: 100000

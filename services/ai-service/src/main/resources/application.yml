@@ -6,6 +6,54 @@ spring:
     name: ai-service
   main:
     banner-mode: off
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:liteworkflow_backend}
+    username: ${POSTGRES_USER:liteworkflow}
+    password: ${POSTGRES_PASSWORD:}
+  flyway:
+    enabled: true
+    schemas: ai
+    default-schema: ai
+  ai:
+    model:
+      chat: openai
+    openai:
+      base-url: ${LITEWORKFLOW_AI_BASE_URL:}
+      api-key: ${LITEWORKFLOW_AI_API_KEY:}
+      chat:
+        options:
+          model: ${LITEWORKFLOW_AI_CHAT_MODEL:}
+          max-tokens: ${LITEWORKFLOW_AI_MAX_OUTPUT_TOKENS:2000}
+    retry:
+      max-attempts: ${LITEWORKFLOW_AI_RETRY_MAX_ATTEMPTS:3}
+      backoff:
+        initial-interval: ${LITEWORKFLOW_AI_RETRY_INITIAL_INTERVAL:250ms}
+        multiplier: ${LITEWORKFLOW_AI_RETRY_MULTIPLIER:2}
+        max-interval: ${LITEWORKFLOW_AI_RETRY_MAX_INTERVAL:2s}
+      on-client-errors: false
+      on-http-codes: 429,500,502,503,504
+
+liteworkflow:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      issuer: ${JWT_ISSUER:liteworkflow}
+      access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+      clock-skew: ${JWT_CLOCK_SKEW:30s}
+  ai:
+    provider: openai
+    base-url: ${LITEWORKFLOW_AI_BASE_URL:}
+    api-key: ${LITEWORKFLOW_AI_API_KEY:}
+    chat-model: ${LITEWORKFLOW_AI_CHAT_MODEL:}
+    core-service-url: ${CORE_SERVICE_URL:http://localhost:8082}
+    internal-token: ${INTERNAL_SERVICE_TOKEN:}
+    connect-timeout: ${LITEWORKFLOW_AI_CONNECT_TIMEOUT:10s}
+    request-timeout: ${LITEWORKFLOW_AI_REQUEST_TIMEOUT:60s}
+    max-output-tokens: ${LITEWORKFLOW_AI_MAX_OUTPUT_TOKENS:2000}
+    max-concurrent-requests: ${LITEWORKFLOW_AI_MAX_CONCURRENT_REQUESTS:8}
+    concurrency-acquire-timeout: ${LITEWORKFLOW_AI_CONCURRENCY_ACQUIRE_TIMEOUT:100ms}
+    daily-request-limit: ${LITEWORKFLOW_AI_DAILY_REQUEST_LIMIT:100}
+    daily-token-limit: ${LITEWORKFLOW_AI_DAILY_TOKEN_LIMIT:200000}
 
 management:
   endpoints:
@@ -19,6 +67,18 @@ management:
 logging:
   pattern:
     level: "%5p [traceId:%X{traceId:-}]"
+  level:
+    # Spring AI's default retry listener includes the entire provider error body.
+    # Application-level logs below emit only request metadata and stable error codes.
+    org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration: ERROR
+    # These packages include request/response DTO content at DEBUG; keep prompts out even
+    # when an operator temporarily lowers the root level.
+    org.springframework.web.client: INFO
+    org.springframework.web.servlet.mvc.method.annotation: INFO
+    org.springframework.ai.openai: INFO
+    # Defense in depth: this converter logs malformed model output at WARN.
+    # ai-service performs its own Jackson + Bean Validation conversion instead.
+    org.springframework.ai.converter.BeanOutputConverter: OFF
 
 springdoc:
   api-docs:
