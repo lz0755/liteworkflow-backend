@@ -63,6 +63,7 @@ class CoreM7IntegrationTest {
     @Autowired private IssueApplicationService issueService;
     @Autowired private IssueCatalogApplicationService catalogService;
     @Autowired private CommentApplicationService commentService;
+    @Autowired private RagSourceApplicationService ragSourceService;
     @Autowired private IssueSubscriptionApplicationService subscriptionService;
     @Autowired private IssueCommentRepository commentRepository;
     @Autowired private IssueMentionRepository mentionRepository;
@@ -286,6 +287,32 @@ class CoreM7IntegrationTest {
         assertError(
                 () -> commentService.update(ownerId, comment.id(), new UpdateCommentRequest("resurrect")),
                 CoreErrorCode.COMMENT_NOT_FOUND);
+    }
+
+    @Test
+    void deletingIssueExposesTombstonesForAllAssociatedComments() {
+        UUID ownerId = activeUser("owner@example.com", "Owner");
+        UUID workspaceId = workspace(ownerId, "Issue deletion");
+        UUID projectId = project(ownerId, workspaceId, "Project");
+        IssueResponse issue = issue(ownerId, projectId, "Delete issue comments");
+        CommentResponse first = commentService.create(
+                ownerId, issue.id(), new CreateCommentRequest("first comment"));
+        CommentResponse second = commentService.create(
+                ownerId, issue.id(), new CreateCommentRequest("second comment"));
+        long firstVersion = commentRepository.findById(first.id()).orElseThrow().getRowVersion();
+
+        issueService.delete(ownerId, issue.id());
+
+        assertThat(ragSourceService.deletedIssueComments(issue.id()))
+                .extracting(value -> value.sourceId())
+                .containsExactlyInAnyOrder(first.id(), second.id());
+        assertThat(ragSourceService.deletedIssueComments(issue.id()))
+                .filteredOn(value -> value.sourceId().equals(first.id()))
+                .singleElement().satisfies(value -> {
+                    assertThat(value.deleted()).isTrue();
+                    assertThat(value.sourceVersion()).isEqualTo(firstVersion + 1);
+                    assertThat(value.text()).isNull();
+                });
     }
 
     @Test

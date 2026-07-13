@@ -13,6 +13,8 @@ import java.util.UUID;
 @Table(schema = "infra", name = "stored_files")
 public class StoredFile {
     @Id private UUID id;
+    @Column(name = "document_id", nullable = false, updatable = false) private UUID documentId;
+    @Column(name = "source_version", nullable = false, updatable = false) private long sourceVersion;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 32) private FilePurpose purpose;
     @Enumerated(EnumType.STRING) @Column(name = "scope_type", nullable = false, length = 16) private FileScope scopeType;
     @Column(name = "scope_id", nullable = false) private UUID scopeId;
@@ -36,7 +38,14 @@ public class StoredFile {
 
     public StoredFile(UUID id, FilePurpose purpose, UUID scopeId, AccessContext context, String bucket,
             String objectKey, ValidatedFile file, UUID createdBy, Instant now) {
-        this.id = id; this.purpose = purpose; this.scopeType = purpose.scope(); this.scopeId = scopeId;
+        this(id, id, 1, purpose, scopeId, context, bucket, objectKey, file, createdBy, now);
+    }
+
+    public StoredFile(UUID id, UUID documentId, long sourceVersion, FilePurpose purpose, UUID scopeId,
+            AccessContext context, String bucket, String objectKey, ValidatedFile file, UUID createdBy, Instant now) {
+        if (sourceVersion < 1) throw new IllegalArgumentException("sourceVersion must be positive");
+        this.id = id; this.documentId = documentId; this.sourceVersion = sourceVersion;
+        this.purpose = purpose; this.scopeType = purpose.scope(); this.scopeId = scopeId;
         this.workspaceId = context.workspaceId(); this.projectId = context.projectId(); this.issueId = context.issueId();
         this.bucket = bucket; this.objectKey = objectKey; this.originalName = file.originalName();
         this.extension = file.extension(); this.contentType = file.contentType(); this.sizeBytes = file.bytes().length;
@@ -50,6 +59,8 @@ public class StoredFile {
     public void retryDelete() { this.status = FileStatus.PENDING_DELETE; }
 
     public UUID getId() { return id; }
+    public UUID getDocumentId() { return documentId; }
+    public long getSourceVersion() { return sourceVersion; }
     public FilePurpose getPurpose() { return purpose; }
     public FileScope getScopeType() { return scopeType; }
     public UUID getScopeId() { return scopeId; }

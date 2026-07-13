@@ -3,6 +3,7 @@ package com.liteworkflow.ai.controller;
 import com.liteworkflow.ai.application.AiApplicationService;
 import com.liteworkflow.ai.application.AiStreamingService;
 import com.liteworkflow.ai.dto.request.AssistRequest;
+import com.liteworkflow.ai.dto.request.AskProjectRequest;
 import com.liteworkflow.ai.dto.request.BreakdownIssueRequest;
 import com.liteworkflow.ai.dto.request.GenerateIssuesRequest;
 import com.liteworkflow.ai.dto.request.SummarizeIssueRequest;
@@ -13,6 +14,7 @@ import com.liteworkflow.ai.dto.response.ConversationDetailResponse;
 import com.liteworkflow.ai.dto.response.ConversationSummaryResponse;
 import com.liteworkflow.ai.dto.response.GenerateIssuesSuggestion;
 import com.liteworkflow.ai.dto.response.IssueSummarySuggestion;
+import com.liteworkflow.ai.dto.response.ProjectAskResponse;
 import com.liteworkflow.ai.dto.response.StructuredSuggestionResponse;
 import com.liteworkflow.ai.dto.response.WeeklyReportSuggestion;
 import com.liteworkflow.ai.dto.stream.AiStreamEventData;
@@ -92,6 +94,14 @@ public class AiController {
             @PathVariable UUID projectId,
             @Valid @RequestBody WeeklyReportRequest request) {
         return ApiResponse.success(service.weeklyReport(user.userId(), projectId, request));
+    }
+
+    @PostMapping("/api/v1/ai/projects/{projectId}/ask")
+    public ApiResponse<ProjectAskResponse> askProject(
+            CurrentUser user,
+            @PathVariable UUID projectId,
+            @Valid @RequestBody AskProjectRequest request) {
+        return ApiResponse.success(service.askProject(user.userId(), projectId, request));
     }
 
     @GetMapping("/api/v1/ai/conversations")

@@ -10,20 +10,51 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:liteworkflow_backend}
     username: ${POSTGRES_USER:liteworkflow}
     password: ${POSTGRES_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_AMQP_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    listener:
+      simple:
+        default-requeue-rejected: false
   flyway:
     enabled: true
     schemas: ai
     default-schema: ai
+    locations: classpath:db/ai-migration,classpath:db/rag-migration
+    placeholders:
+      embeddingDimensions: ${LITEWORKFLOW_AI_EMBEDDING_DIMENSIONS:}
   ai:
     model:
       chat: openai
+      embedding: openai
     openai:
       base-url: ${LITEWORKFLOW_AI_BASE_URL:}
       api-key: ${LITEWORKFLOW_AI_API_KEY:}
       chat:
+        completions-path: ${LITEWORKFLOW_AI_CHAT_COMPLETIONS_PATH:/v1/chat/completions}
         options:
           model: ${LITEWORKFLOW_AI_CHAT_MODEL:}
           max-tokens: ${LITEWORKFLOW_AI_MAX_OUTPUT_TOKENS:2000}
+      embedding:
+        base-url: ${LITEWORKFLOW_AI_EMBEDDING_BASE_URL:${LITEWORKFLOW_AI_BASE_URL:}}
+        api-key: ${LITEWORKFLOW_AI_EMBEDDING_API_KEY:${LITEWORKFLOW_AI_API_KEY:}}
+        embeddings-path: ${LITEWORKFLOW_AI_EMBEDDINGS_PATH:/v1/embeddings}
+        options:
+          model: ${LITEWORKFLOW_AI_EMBEDDING_MODEL:}
+          dimensions: ${LITEWORKFLOW_AI_EMBEDDING_DIMENSIONS:}
+    vectorstore:
+      type: pgvector
+      pgvector:
+        schema-name: rag
+        table-name: vector_store
+        initialize-schema: ${LITEWORKFLOW_RAG_INITIALIZE_SCHEMA:false}
+        schema-validation: true
+        distance-type: COSINE_DISTANCE
+        index-type: NONE
+        dimensions: ${LITEWORKFLOW_AI_EMBEDDING_DIMENSIONS:}
     retry:
       max-attempts: ${LITEWORKFLOW_AI_RETRY_MAX_ATTEMPTS:3}
       backoff:
@@ -57,7 +88,28 @@ liteworkflow:
     stream-idle-timeout: ${LITEWORKFLOW_AI_STREAM_IDLE_TIMEOUT:60s}
     daily-request-limit: ${LITEWORKFLOW_AI_DAILY_REQUEST_LIMIT:100}
     daily-token-limit: ${LITEWORKFLOW_AI_DAILY_TOKEN_LIMIT:200000}
-
+    rag:
+      enabled: ${LITEWORKFLOW_RAG_ENABLED:true}
+      embedding-model: ${LITEWORKFLOW_AI_EMBEDDING_MODEL:}
+      embedding-dimensions: ${LITEWORKFLOW_AI_EMBEDDING_DIMENSIONS:}
+      startup-validation: ${LITEWORKFLOW_RAG_STARTUP_VALIDATION:true}
+      top-k: ${LITEWORKFLOW_RAG_TOP_K:8}
+      similarity-threshold: ${LITEWORKFLOW_RAG_SIMILARITY_THRESHOLD:0.72}
+      document-chunk-tokens: ${LITEWORKFLOW_RAG_DOCUMENT_CHUNK_TOKENS:650}
+      document-chunk-overlap-tokens: ${LITEWORKFLOW_RAG_DOCUMENT_CHUNK_OVERLAP_TOKENS:100}
+      max-document-chunks: ${LITEWORKFLOW_RAG_MAX_DOCUMENT_CHUNKS:10000}
+      max-extracted-characters: ${LITEWORKFLOW_RAG_MAX_EXTRACTED_CHARACTERS:5000000}
+      max-document-bytes: ${FILE_DOCUMENT_MAX_BYTES:52428800}
+      index-max-attempts: ${LITEWORKFLOW_RAG_INDEX_MAX_ATTEMPTS:3}
+      index-retry-initial-interval: ${LITEWORKFLOW_RAG_INDEX_RETRY_INITIAL_INTERVAL:500ms}
+      index-processing-lease: ${LITEWORKFLOW_RAG_INDEX_PROCESSING_LEASE:5m}
+      s3:
+        bucket: ${S3_BUCKET:${SEAWEEDFS_BUCKET:liteworkflow}}
+        region: ${S3_REGION:us-east-1}
+        endpoint: ${S3_ENDPOINT:http://localhost:8333}
+        access-key: ${S3_ACCESS_KEY:${SEAWEEDFS_ACCESS_KEY:}}
+        secret-key: ${S3_SECRET_KEY:${SEAWEEDFS_SECRET_KEY:}}
+        path-style: ${S3_PATH_STYLE:true}
 management:
   endpoints:
     web:

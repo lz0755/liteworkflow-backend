@@ -122,7 +122,7 @@ public class IssueApplicationService {
         List<IssueLabel> labels = requireLabels(projectId, labelIds);
 
         Instant now = clock.instant();
-        Issue issue = issueRepository.save(new Issue(
+        Issue issue = issueRepository.saveAndFlush(new Issue(
                 UUID.randomUUID(),
                 projectId,
                 counter.allocate(now),
@@ -193,6 +193,7 @@ public class IssueApplicationService {
             return assemble(List.of(issue)).getFirst();
         }
         issue.update(title, description, actorId, clock.instant());
+        issueRepository.flush();
         Project project = requireProject(projectId);
         activityOutboxService.recordProjectChange(
                 "issue.updated",
@@ -216,6 +217,7 @@ public class IssueApplicationService {
         }
         UUID previousStateId = issue.getStateId();
         issue.moveTo(state.getId(), actorId, clock.instant());
+        issueRepository.flush();
         Project project = requireProject(projectId);
         Set<UUID> notificationRecipients = subscriberRepository.findActiveReadableUserIdsByIssueId(issueId)
                 .stream()
@@ -255,6 +257,7 @@ public class IssueApplicationService {
                 .map(userId -> new IssueAssignee(issueId, userId, actorId, now))
                 .toList());
         issue.touch(actorId, now);
+        issueRepository.flush();
         activityOutboxService.recordProjectChange(
                 "issue.assignees.changed",
                 project.getWorkspaceId(),
@@ -287,6 +290,7 @@ public class IssueApplicationService {
                 .map(label -> new IssueLabelRelation(issueId, label.getId(), actorId, now))
                 .toList());
         issue.touch(actorId, now);
+        issueRepository.flush();
         activityOutboxService.recordProjectChange(
                 "issue.labels.changed",
                 project.getWorkspaceId(),
@@ -305,6 +309,7 @@ public class IssueApplicationService {
         Issue issue = lockIssue(issueId);
         Instant now = clock.instant();
         issue.delete(actorId, now);
+        issueRepository.flush();
         Project project = requireProject(projectId);
         activityOutboxService.recordProjectChange(
                 "issue.deleted",
@@ -469,9 +474,11 @@ public class IssueApplicationService {
 
     private Map<String, Object> issuePayload(Issue issue, Map<String, ?> extras) {
         Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("sourceVersion", issue.getRowVersion());
         payload.put("issueNumber", issue.getIssueNumber());
         payload.put("title", issue.getTitle());
         payload.put("stateId", issue.getStateId());
+        payload.put("updatedAt", issue.getUpdatedAt());
         payload.putAll(extras);
         return payload;
     }

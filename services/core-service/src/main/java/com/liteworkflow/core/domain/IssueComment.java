@@ -79,4 +79,5 @@ public class IssueComment {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }
+    public long getRowVersion() { return rowVersion; }
 }

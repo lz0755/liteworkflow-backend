@@ -7,9 +7,13 @@ spring:
     enabled: true
     schemas: ai
     default-schema: ai
+    locations: classpath:db/ai-migration
   ai:
     model:
       chat: none
+      embedding: none
+    vectorstore:
+      type: none
     openai:
       base-url: http://127.0.0.1
       api-key: test-profile-placeholder
@@ -38,3 +42,10 @@ liteworkflow:
     stream-idle-timeout: 500ms
     daily-request-limit: 100
     daily-token-limit: 100000
+    rag:
+      enabled: false
+
+management:
+  health:
+    rabbit:
+      enabled: false

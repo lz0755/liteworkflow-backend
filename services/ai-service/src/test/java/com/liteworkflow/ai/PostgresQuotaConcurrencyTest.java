@@ -46,7 +46,7 @@ class PostgresQuotaConcurrencyTest {
                 .dataSource(firstDataSource)
                 .schemas("ai")
                 .defaultSchema("ai")
-                .locations("classpath:db/migration")
+                .locations("classpath:db/ai-migration")
                 .load()
                 .migrate();
     }

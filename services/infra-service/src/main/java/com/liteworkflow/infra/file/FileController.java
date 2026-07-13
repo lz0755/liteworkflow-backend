@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -97,6 +98,16 @@ public class FileController {
     public ApiResponse<FileResponse> projectDocument(CurrentUser user, @PathVariable UUID projectId,
             @RequestPart("file") MultipartFile file) {
         return ApiResponse.success(service.upload(user.userId(), FilePurpose.PROJECT_DOCUMENT, projectId, file));
+    }
+
+    @PutMapping(path = "/api/v1/projects/{projectId}/documents/{documentId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<FileResponse> replaceProjectDocument(
+            CurrentUser user,
+            @PathVariable UUID projectId,
+            @PathVariable UUID documentId,
+            @RequestPart("file") MultipartFile file) {
+        return ApiResponse.success(service.replaceProjectDocument(user.userId(), projectId, documentId, file));
     }
 
     @GetMapping("/api/v1/projects/{projectId}/documents")

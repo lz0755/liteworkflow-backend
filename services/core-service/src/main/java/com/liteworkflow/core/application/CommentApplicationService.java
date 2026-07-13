@@ -96,7 +96,7 @@ public class CommentApplicationService {
         validateMentions(issue.getProjectId(), mentionedUserIds);
 
         Instant now = clock.instant();
-        IssueComment comment = commentRepository.save(
+        IssueComment comment = commentRepository.saveAndFlush(
                 new IssueComment(UUID.randomUUID(), issueId, actorId, body, now));
         saveMentions(comment.getId(), mentionedUserIds, actorId, now);
 
@@ -137,6 +137,7 @@ public class CommentApplicationService {
 
         Instant now = clock.instant();
         comment.update(body, actorId, now);
+        commentRepository.flush();
         if (!removedMentions.isEmpty()) {
             mentionRepository.deleteByCommentIdAndUserIdIn(commentId, removedMentions);
         }
@@ -168,6 +169,7 @@ public class CommentApplicationService {
         Instant now = clock.instant();
         mentionRepository.deleteByCommentId(commentId);
         comment.delete(actorId, now);
+        commentRepository.flush();
         Project project = requireProject(issue.getProjectId());
         activityOutboxService.recordProjectChange(
                 "comment.deleted",
@@ -176,12 +178,7 @@ public class CommentApplicationService {
                 COMMENT_AGGREGATE,
                 commentId,
                 actorId,
-                Map.of(
-                        "commentId", commentId,
-                        "issueId", issueId,
-                        "authorId", comment.getAuthorId(),
-                        "deletedBy", actorId,
-                        "deletedAt", now));
+                commentMetadata(comment, Set.of()));
     }
 
     private void recordMentionEvents(
@@ -229,6 +226,8 @@ public class CommentApplicationService {
         metadata.put("commentId", comment.getId());
         metadata.put("issueId", comment.getIssueId());
         metadata.put("authorId", comment.getAuthorId());
+        metadata.put("sourceVersion", comment.getRowVersion());
+        metadata.put("deleted", comment.getDeletedAt() != null);
         metadata.put("mentionedUserIds", mentionedUserIds);
         metadata.put("createdAt", comment.getCreatedAt());
         metadata.put("updatedAt", comment.getUpdatedAt());

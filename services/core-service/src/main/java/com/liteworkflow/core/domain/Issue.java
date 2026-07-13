@@ -146,4 +146,8 @@ public class Issue {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    public long getRowVersion() {
+        return rowVersion;
+    }
 }

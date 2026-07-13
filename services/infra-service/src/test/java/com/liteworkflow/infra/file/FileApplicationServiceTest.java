@@ -116,7 +116,55 @@ class FileApplicationServiceTest {
         ArgumentCaptor<FileOutboxEvent> event = ArgumentCaptor.forClass(FileOutboxEvent.class);
         verify(outbox).saveAndFlush(event.capture());
         assertThat(event.getValue().getPayloadJson())
-                .contains("rag.document.index", projectId.toString(), "notes.md", "sha256Hex")
+                .contains("rag.document.upsert", projectId.toString(), "notes.md", "sha256Hex",
+                        "documentId", "sourceVersion")
                 .doesNotContain("private body", "bytes", "contentBase64");
+    }
+
+    @Test
+    void deletingProjectDocumentPublishesMetadataOnlyTombstone() {
+        var validated = new ValidatedFile("body".getBytes(), "notes.md", "md", "text/markdown", "0".repeat(64));
+        StoredFile file = new StoredFile(UUID.randomUUID(), FilePurpose.PROJECT_DOCUMENT, projectId,
+                new AccessContext(workspaceId, projectId, null), "liteworkflow", "rag-documents/safe.md",
+                validated, userId, now);
+        when(files.findByIdAndStatus(file.getId(), FileStatus.ACTIVE)).thenReturn(Optional.of(file));
+        when(files.findByIdAndStatusForUpdate(file.getId(), FileStatus.ACTIVE)).thenReturn(Optional.of(file));
+
+        service.delete(userId, file.getId());
+
+        ArgumentCaptor<FileOutboxEvent> event = ArgumentCaptor.forClass(FileOutboxEvent.class);
+        verify(outbox).saveAndFlush(event.capture());
+        assertThat(event.getValue().getEventType()).isEqualTo("rag.document.deleted");
+        assertThat(event.getValue().getPayloadJson())
+                .contains(file.getDocumentId().toString(), "\"sourceVersion\":2", "\"objectKey\":null")
+                .doesNotContain("body");
+        assertThat(file.getStatus()).isEqualTo(FileStatus.PENDING_DELETE);
+        verify(storage, never()).get(any());
+    }
+
+    @Test
+    void replacingProjectDocumentKeepsDocumentIdAndIncrementsSourceVersion() {
+        var oldContent = new ValidatedFile("old".getBytes(), "notes.md", "md", "text/markdown", "0".repeat(64));
+        UUID documentId = UUID.randomUUID();
+        StoredFile current = new StoredFile(UUID.randomUUID(), documentId, 1,
+                FilePurpose.PROJECT_DOCUMENT, projectId, new AccessContext(workspaceId, projectId, null),
+                "liteworkflow", "rag-documents/old.md", oldContent, userId, now);
+        when(access.authorize(userId, FileScope.PROJECT, projectId, FileAccessAuthorizer.AccessAction.WRITE))
+                .thenReturn(new AccessContext(workspaceId, projectId, null));
+        when(files.findActiveByDocumentIdForUpdate(documentId)).thenReturn(Optional.of(current));
+        var replacement = new MockMultipartFile(
+                "file", "notes-v2.md", "text/markdown", "new body".getBytes());
+
+        FileResponse response = service.replaceProjectDocument(userId, projectId, documentId, replacement);
+
+        assertThat(response.documentId()).isEqualTo(documentId);
+        assertThat(response.sourceVersion()).isEqualTo(2);
+        assertThat(response.id()).isNotEqualTo(current.getId());
+        assertThat(current.getStatus()).isEqualTo(FileStatus.PENDING_DELETE);
+        ArgumentCaptor<FileOutboxEvent> event = ArgumentCaptor.forClass(FileOutboxEvent.class);
+        verify(outbox).saveAndFlush(event.capture());
+        assertThat(event.getValue().getPayloadJson())
+                .contains("rag.document.upsert", documentId.toString(), "\"sourceVersion\":2")
+                .doesNotContain("new body");
     }
 }

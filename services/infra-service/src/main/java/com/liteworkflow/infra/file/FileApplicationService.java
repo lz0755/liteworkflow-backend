@@ -5,12 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liteworkflow.common.core.error.BizException;
 import com.liteworkflow.common.file.storage.ObjectStorage;
 import com.liteworkflow.common.file.storage.PutObjectRequest;
+import com.liteworkflow.common.mq.event.ProjectDocumentEvent;
 import com.liteworkflow.infra.config.FileStorageProperties;
 import java.io.ByteArrayInputStream;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -54,7 +57,7 @@ public class FileApplicationService {
         StoredFile stored = new StoredFile(fileId, purpose, resourceId, context, properties.getS3().getBucket(),
                 objectKey, validated, userId, now);
         FileOutboxEvent documentEvent = purpose == FilePurpose.PROJECT_DOCUMENT
-                ? documentEvent(stored, context, userId) : null;
+                ? documentUpsertEvent(stored, context, userId) : null;
         byte[] bytes = validated.bytes();
         storage.put(new PutObjectRequest(objectKey, new ByteArrayInputStream(bytes), bytes.length,
                 validated.contentType(), Map.of("file-id", fileId.toString(), "sha256", validated.sha256Hex())));
@@ -97,9 +100,57 @@ public class FileApplicationService {
         StoredFile file = active(fileId);
         authorize(userId, file, FileAccessAuthorizer.AccessAction.WRITE);
         transactions.executeWithoutResult(status -> {
-            StoredFile current = active(fileId);
+            StoredFile current = files.findByIdAndStatusForUpdate(fileId, FileStatus.ACTIVE)
+                    .orElseThrow(() -> new BizException(FileErrorCode.FILE_NOT_FOUND));
+            if (current.getPurpose() == FilePurpose.PROJECT_DOCUMENT) {
+                outbox.saveAndFlush(documentDeleteEvent(current, userId));
+            }
             current.markPendingDelete(clock.instant());
         });
+    }
+
+    public FileResponse replaceProjectDocument(
+            UUID userId, UUID projectId, UUID documentId, MultipartFile multipart) {
+        AccessContext context = access.authorize(userId, FileScope.PROJECT, projectId,
+                FileAccessAuthorizer.AccessAction.WRITE);
+        ValidatedFile validated = validator.validate(FilePurpose.PROJECT_DOCUMENT, multipart);
+        AtomicReference<String> uploadedKey = new AtomicReference<>();
+        try {
+            return transactions.execute(status -> {
+                StoredFile current = files.findActiveByDocumentIdForUpdate(documentId)
+                        .filter(file -> file.getPurpose() == FilePurpose.PROJECT_DOCUMENT
+                                && projectId.equals(file.getProjectId()))
+                        .orElseThrow(() -> new BizException(FileErrorCode.FILE_NOT_FOUND));
+                long sourceVersion = Math.addExact(current.getSourceVersion(), 1);
+                UUID fileId = UUID.randomUUID();
+                String objectKey = keys.create(FilePurpose.PROJECT_DOCUMENT, context.workspaceId(),
+                        context.projectId(), projectId, fileId, validated.extension());
+                byte[] bytes = validated.bytes();
+                storage.put(new PutObjectRequest(objectKey, new ByteArrayInputStream(bytes), bytes.length,
+                        validated.contentType(), Map.of(
+                                "file-id", fileId.toString(),
+                                "document-id", documentId.toString(),
+                                "source-version", Long.toString(sourceVersion),
+                                "sha256", validated.sha256Hex())));
+                uploadedKey.set(objectKey);
+                Instant now = clock.instant();
+                StoredFile replacement = new StoredFile(fileId, documentId, sourceVersion,
+                        FilePurpose.PROJECT_DOCUMENT, projectId, context, properties.getS3().getBucket(),
+                        objectKey, validated, userId, now);
+                current.markPendingDelete(now);
+                files.flush();
+                files.saveAndFlush(replacement);
+                outbox.saveAndFlush(documentUpsertEvent(replacement, context, userId));
+                return FileResponse.from(replacement);
+            });
+        } catch (BizException expected) {
+            compensateUploadedReplacement(uploadedKey.get(), expected);
+            throw expected;
+        } catch (RuntimeException failure) {
+            compensateUploadedReplacement(uploadedKey.get(), failure);
+            throw new BizException(FileErrorCode.FILE_UPLOAD_FAILED,
+                    "Document replacement could not be committed", failure);
+        }
     }
 
     private StoredFile active(UUID fileId) {
@@ -117,17 +168,35 @@ public class FileApplicationService {
         }
     }
 
-    private FileOutboxEvent documentEvent(StoredFile file, AccessContext context, UUID actorId) {
+    private FileOutboxEvent documentUpsertEvent(StoredFile file, AccessContext context, UUID actorId) {
         UUID eventId = UUID.randomUUID();
-        var payload = new ProjectDocumentEvent(eventId, "rag.document.index", 1, clock.instant(),
-                context.workspaceId(), context.projectId(), file.getId(), actorId, file.getObjectKey(),
+        var payload = new ProjectDocumentEvent(eventId, "rag.document.upsert", 1, clock.instant(),
+                context.workspaceId(), context.projectId(), file.getDocumentId(), file.getId(),
+                file.getSourceVersion(), actorId, file.getObjectKey(),
                 file.getOriginalName(), file.getContentType(), file.getSizeBytes(), file.getSha256Hex());
+        return outboxEvent(payload);
+    }
+
+    private FileOutboxEvent documentDeleteEvent(StoredFile file, UUID actorId) {
+        UUID eventId = UUID.randomUUID();
+        var payload = new ProjectDocumentEvent(eventId, "rag.document.deleted", 1, clock.instant(),
+                file.getWorkspaceId(), file.getProjectId(), file.getDocumentId(), file.getId(),
+                Math.addExact(file.getSourceVersion(), 1), actorId, null, file.getOriginalName(),
+                null, 0, null);
+        return outboxEvent(payload);
+    }
+
+    private FileOutboxEvent outboxEvent(ProjectDocumentEvent payload) {
         try {
-            return new FileOutboxEvent(eventId, payload.eventType(), payload.eventType(),
+            return new FileOutboxEvent(payload.eventId(), payload.eventType(), payload.eventType(),
                     json.writeValueAsString(payload), payload.occurredAt());
         } catch (JsonProcessingException exception) {
             throw new BizException(FileErrorCode.FILE_UPLOAD_FAILED, "Document event could not be serialized", exception);
         }
+    }
+
+    private void compensateUploadedReplacement(String objectKey, RuntimeException failure) {
+        if (objectKey != null) compensateOrphan(objectKey, failure);
     }
 
     private void compensateOrphan(String objectKey, RuntimeException originalFailure) {
