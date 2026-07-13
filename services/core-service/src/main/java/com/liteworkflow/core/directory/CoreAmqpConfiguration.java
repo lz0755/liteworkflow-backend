@@ -4,8 +4,16 @@ import java.util.Map;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
+import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
+import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -57,5 +65,31 @@ public class CoreAmqpConfiguration {
         return BindingBuilder.bind(coreIdentityUserDeadLetterQueue)
                 .to(coreIdentityDeadLetterExchange)
                 .with(IDENTITY_USER_DLQ);
+    }
+
+    @Bean(name = "identityUserRabbitListenerContainerFactory")
+    SimpleRabbitListenerContainerFactory identityUserRabbitListenerContainerFactory(
+            SimpleRabbitListenerContainerFactoryConfigurer configurer,
+            ConnectionFactory connectionFactory,
+            RabbitTemplate rabbitTemplate,
+            RabbitProperties rabbitProperties) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        configurer.configure(factory, connectionFactory);
+        RabbitProperties.ListenerRetry retry = rabbitProperties.getListener().getSimple().getRetry();
+        if (retry.isEnabled()) {
+            RepublishMessageRecoverer recoverer =
+                    new RepublishMessageRecoverer(rabbitTemplate, IDENTITY_DLX, IDENTITY_USER_DLQ);
+            recoverer.setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+            factory.setAdviceChain(RetryInterceptorBuilder.stateless()
+                    .maxAttempts(retry.getMaxAttempts())
+                    .backOffOptions(
+                            retry.getInitialInterval().toMillis(),
+                            retry.getMultiplier(),
+                            retry.getMaxInterval().toMillis())
+                    .recoverer(recoverer)
+                    .build());
+        }
+        factory.setDefaultRequeueRejected(false);
+        return factory;
     }
 }

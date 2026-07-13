@@ -371,6 +371,24 @@ class DirectOpenAiIntegrationTest {
         assertThat(SERVER.getRequestCount()).isEqualTo(before);
     }
 
+    @Test
+    @Order(14)
+    void malformedProviderJsonIsMappedWithoutPersistingAnAssistantMessage() throws Exception {
+        UUID userId = UUID.randomUUID();
+        SERVER.enqueue(jsonResponse(200, "{not-valid-provider-json"));
+
+        ResponseEntity<String> response = post("/api/v1/ai/assist", userId, Map.of(
+                "message", "reject malformed provider payload"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+        assertThat(JSON.readTree(response.getBody()).path("code").asText()).isEqualTo("AI_PROVIDER_502");
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM ai.ai_messages m
+                JOIN ai.ai_conversations c ON c.id = m.conversation_id
+                WHERE c.user_id = ? AND m.role = 'ASSISTANT'
+                """, Integer.class, userId)).isZero();
+    }
+
     private ResponseEntity<String> post(String path, UUID userId, Object body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

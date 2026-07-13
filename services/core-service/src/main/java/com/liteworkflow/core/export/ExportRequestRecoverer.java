@@ -37,7 +37,17 @@ public class ExportRequestRecoverer implements MessageRecoverer {
         try {
             JavaType type = json.getTypeFactory().constructParametricType(
                     EventEnvelope.class, IssueExportRequestedPayload.class);
-            return json.readValue(message.getBody(), type);
+            EventEnvelope<IssueExportRequestedPayload> envelope = json.readValue(message.getBody(), type);
+            IssueExportRequestedPayload payload = envelope.payload();
+            if (!CoreExportAmqpConfiguration.REQUESTED.equals(envelope.eventType())
+                    || payload == null
+                    || payload.jobId() == null
+                    || payload.projectId() == null
+                    || payload.requestedBy() == null
+                    || payload.format() == null) {
+                return null;
+            }
+            return envelope;
         } catch (Exception ignored) {
             return null;
         }

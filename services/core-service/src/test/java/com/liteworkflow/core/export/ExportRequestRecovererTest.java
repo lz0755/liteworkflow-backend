@@ -52,6 +52,31 @@ class ExportRequestRecovererTest {
                 message);
     }
 
+    @Test
+    void validJsonForAnotherEventContractMovesToDlqWithoutInventingAJob() throws Exception {
+        UUID userId = UUID.randomUUID();
+        EventEnvelope<Map<String, Object>> otherContract = new EventEnvelope<>(
+                UUID.randomUUID(),
+                "identity.user.updated",
+                1,
+                Instant.parse("2026-07-12T00:00:00Z"),
+                new EventScope(null, null, userId),
+                userId,
+                Map.of("userId", userId, "version", 2),
+                Map.of());
+        Message message = MessageBuilder.withBody(json.writeValueAsBytes(otherContract))
+                .setContentType("application/json")
+                .build();
+
+        recoverer.recover(message, new IllegalArgumentException("wrong event contract"));
+
+        verify(outcomes, never()).recordFailed(any(), any());
+        verify(rabbit).send(
+                CoreExportAmqpConfiguration.REQUEST_DLX,
+                CoreExportAmqpConfiguration.REQUEST_DLQ,
+                message);
+    }
+
     private EventEnvelope<IssueExportRequestedPayload> envelope() {
         UUID jobId = UUID.randomUUID();
         UUID projectId = UUID.randomUUID();

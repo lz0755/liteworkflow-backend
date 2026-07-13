@@ -29,4 +29,13 @@ class InfraServiceSmokeTest {
                 .isEqualTo("infra-smoke-trace");
         assertThat(response.getBody()).contains("\"status\":\"UP\"");
     }
+
+    @Test
+    void openApiDocumentExposesBusinessPathsAndBearerSecurityScheme() {
+        ResponseEntity<String> response = http.getForEntity("/v3/api-docs/infra", String.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody())
+                .contains("\"openapi\"", "\"bearer-jwt\"", "\"/api/v1/files/upload\"");
+    }
 }

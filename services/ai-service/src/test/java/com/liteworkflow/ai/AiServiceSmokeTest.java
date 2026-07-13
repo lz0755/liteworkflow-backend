@@ -33,4 +33,13 @@ class AiServiceSmokeTest {
                 .isEqualTo("ai-smoke-trace");
         assertThat(response.getBody()).contains("\"status\":\"UP\"");
     }
+
+    @Test
+    void openApiDocumentExposesBusinessPathsAndBearerSecurityScheme() {
+        ResponseEntity<String> response = http.getForEntity("/v3/api-docs/ai", String.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody())
+                .contains("\"openapi\"", "\"bearer-jwt\"", "\"/api/v1/ai/assist\"");
+    }
 }

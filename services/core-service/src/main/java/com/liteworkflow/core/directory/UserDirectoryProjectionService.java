@@ -95,6 +95,10 @@ public class UserDirectoryProjectionService {
     }
 
     private void validate(EventEnvelope<IdentityUserEventPayload> envelope) {
+        if (envelope.version() != 1) {
+            throw new IllegalArgumentException(
+                    "Unsupported identity user event version " + envelope.version());
+        }
         if (!SUPPORTED_EVENT_TYPES.contains(envelope.eventType())) {
             throw new IllegalArgumentException("Unsupported identity user event type");
         }

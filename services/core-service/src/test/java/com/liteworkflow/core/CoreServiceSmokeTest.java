@@ -29,4 +29,13 @@ class CoreServiceSmokeTest {
                 .isEqualTo("core-smoke-trace");
         assertThat(response.getBody()).contains("\"status\":\"UP\"");
     }
+
+    @Test
+    void openApiDocumentExposesBusinessPathsAndBearerSecurityScheme() {
+        ResponseEntity<String> response = http.getForEntity("/v3/api-docs/core", String.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody())
+                .contains("\"openapi\"", "\"bearer-jwt\"", "\"/api/v1/workspaces\"");
+    }
 }

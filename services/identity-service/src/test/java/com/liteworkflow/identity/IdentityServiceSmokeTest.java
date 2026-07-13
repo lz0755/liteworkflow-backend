@@ -42,6 +42,15 @@ class IdentityServiceSmokeTest {
                 });
     }
 
+    @Test
+    void openApiDocumentExposesBusinessPathsAndBearerSecurityScheme() {
+        ResponseEntity<String> response = http.getForEntity("/v3/api-docs/identity", String.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody())
+                .contains("\"openapi\"", "\"bearer-jwt\"", "\"/api/v1/auth/register\"");
+    }
+
     private void assertHealthy(String traceId) {
         HttpHeaders headers = new HttpHeaders();
         headers.set(TraceConstants.TRACE_ID_HEADER, traceId);

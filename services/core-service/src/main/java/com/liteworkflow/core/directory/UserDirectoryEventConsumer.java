@@ -17,7 +17,9 @@ public class UserDirectoryEventConsumer {
         this.projectionService = projectionService;
     }
 
-    @RabbitListener(queues = CoreAmqpConfiguration.IDENTITY_USER_QUEUE)
+    @RabbitListener(
+            queues = CoreAmqpConfiguration.IDENTITY_USER_QUEUE,
+            containerFactory = "identityUserRabbitListenerContainerFactory")
     public void consume(EventEnvelope<IdentityUserEventPayload> envelope) {
         boolean applied = projectionService.consume(envelope);
         log.debug(
