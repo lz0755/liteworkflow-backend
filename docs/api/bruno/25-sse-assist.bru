@@ -1,0 +1,38 @@
+meta {
+  name: 04 / SSE assist
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{baseUrl}}/api/v1/ai/assist/stream
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "workspaceId": "{{workspaceId}}",
+    "projectId": "{{projectId}}",
+    "message": "Stream a concise implementation breakdown."
+  }
+}
+
+tests {
+  test("SSE emits context, delta, and done", function () {
+    expect(res.getStatus()).to.equal(200);
+    const stream = String(res.getBody());
+    expect(stream).to.include("event:context");
+    expect(stream).to.include("event:delta");
+    expect(stream).to.include("event:done");
+  });
+}
+
+settings {
+  timeout: 120000
+}

@@ -1,0 +1,22 @@
+meta {
+  name: 03 / Upload Project document
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/api/v1/projects/{{projectId}}/documents
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file({{documentPath}})
+}
+
+tests {
+  test("Project document is uploaded", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+  });
+}

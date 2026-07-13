@@ -1,0 +1,37 @@
+meta {
+  name: 05 / Create CSV export
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/api/v1/exports/issues
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "projectId": "{{projectId}}",
+    "format": "CSV"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 202 && body.code === "OK") {
+    bru.setVar("exportId", body.data.id);
+  }
+}
+
+tests {
+  test("CSV export job is created", function () {
+    expect(res.getStatus()).to.equal(202);
+    expect(res.getBody().code).to.equal("OK");
+    expect(res.getBody().data.id).to.be.a("string").and.not.empty;
+  });
+}

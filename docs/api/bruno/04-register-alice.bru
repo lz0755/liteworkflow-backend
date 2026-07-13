@@ -1,0 +1,30 @@
+meta {
+  name: 01 / Register Alice
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "alice.{{runId}}@demo.invalid",
+    "displayName": "Alice",
+    "password": "{{demoPassword}}"
+  }
+}
+
+tests {
+  test("Alice registration succeeds", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+  });
+}

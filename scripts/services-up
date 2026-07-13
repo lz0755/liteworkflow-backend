@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/app-common.sh
+source "${SCRIPT_DIR}/lib/app-common.sh"
+
+build=true
+if [[ "${1:-}" == "--no-build" ]]; then
+  build=false
+elif [[ $# -gt 0 ]]; then
+  app_die "Usage: $0 [--no-build]"
+fi
+
+app_preflight
+app_validate_environment
+app_export_environment
+mkdir -p "${APP_RUN_DIR}" "${APP_ROOT_DIR}/logs"
+
+cleanup_on_error() {
+  local status=$?
+  if (( status != 0 )); then
+    "${SCRIPT_DIR}/services-down" || true
+  fi
+  exit "${status}"
+}
+trap cleanup_on_error EXIT
+
+if [[ "${build}" == true ]]; then
+  app_require_command mvn
+  echo "Packaging five services..."
+  (cd "${APP_ROOT_DIR}" && mvn --batch-mode --no-transfer-progress -DskipTests package)
+fi
+
+services=(core-service identity-service infra-service ai-service gateway-service)
+ports=(8082 8081 8083 8084 8080)
+
+for index in "${!services[@]}"; do
+  service="${services[$index]}"
+  port="${ports[$index]}"
+  jar="${APP_ROOT_DIR}/services/${service}/target/${service}-0.1.0-SNAPSHOT.jar"
+  pid_file="${APP_RUN_DIR}/${service}.pid"
+  console_log="${APP_ROOT_DIR}/logs/${service}/console.log"
+
+  [[ -f "${jar}" ]] || app_die "Packaged service not found: ${jar}. Run without --no-build."
+  if [[ -f "${pid_file}" ]] && kill -0 "$(<"${pid_file}")" 2>/dev/null; then
+    app_die "${service} is already running with PID $(<"${pid_file}")."
+  fi
+
+  mkdir -p "$(dirname "${console_log}")"
+  echo "Starting ${service} on port ${port}..."
+  nohup java -jar "${jar}" >"${console_log}" 2>&1 &
+  pid=$!
+  printf '%s\n' "${pid}" >"${pid_file}"
+  if ! app_wait_for_health "${service}" "${port}"; then
+    echo "${service} did not become healthy; inspect ${console_log}." >&2
+    exit 1
+  fi
+done
+
+trap - EXIT
+echo "All five liteworkflow services are healthy. Gateway: http://127.0.0.1:8080"

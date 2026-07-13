@@ -1,0 +1,29 @@
+meta {
+  name: 02 / Add Project member
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/api/v1/projects/{{projectId}}/members
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "userId": "{{aliceId}}",
+    "role": "MEMBER"
+  }
+}
+
+tests {
+  test("Alice is added to the Project", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+  });
+}

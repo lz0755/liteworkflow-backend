@@ -1,0 +1,262 @@
+{
+  "info": {
+    "_postman_id": "aee21817-6f33-4f59-a171-d4e2a2179d79",
+    "name": "liteworkflow MVP",
+    "description": "Importable M14 collection. Run requests in order after setting demoPassword and the two local file paths. Dynamic IDs and bearer tokens are captured by test scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{adamToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8080" },
+    { "key": "runId", "value": "replace-with-unique-run-id" },
+    { "key": "demoPassword", "value": "" },
+    { "key": "adamToken", "value": "" },
+    { "key": "aliceToken", "value": "" },
+    { "key": "adamId", "value": "" },
+    { "key": "aliceId", "value": "" },
+    { "key": "workspaceId", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "issueId", "value": "" },
+    { "key": "exportId", "value": "" },
+    { "key": "attachmentPath", "value": "" },
+    { "key": "documentPath", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 Health and OpenAPI",
+      "item": [
+        {
+          "name": "Gateway health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/actuator/health" }
+        },
+        {
+          "name": "Swagger groups",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/v3/api-docs/swagger-config" }
+        }
+      ]
+    },
+    {
+      "name": "01 Identity",
+      "item": [
+        {
+          "name": "Register Adam",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const data = pm.response.json().data;",
+            "pm.collectionVariables.set('adamToken', data.accessToken);"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" }, "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"adam.{{runId}}@demo.invalid\",\n  \"displayName\": \"Adam\",\n  \"password\": \"{{demoPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Register Alice",
+          "request": {
+            "auth": { "type": "noauth" }, "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice.{{runId}}@demo.invalid\",\n  \"displayName\": \"Alice\",\n  \"password\": \"{{demoPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Register Bob",
+          "request": {
+            "auth": { "type": "noauth" }, "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"bob.{{runId}}@demo.invalid\",\n  \"displayName\": \"Bob\",\n  \"password\": \"{{demoPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          }
+        },
+        {
+          "name": "Login Alice",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('aliceToken', pm.response.json().data.accessToken);"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" }, "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice.{{runId}}@demo.invalid\",\n  \"password\": \"{{demoPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Adam identity",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('adamId', pm.response.json().data.userId);"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/me" }
+        },
+        {
+          "name": "Alice identity",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('aliceId', pm.response.json().data.userId);"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{aliceToken}}", "type": "string" }] },
+            "method": "GET", "url": "{{baseUrl}}/api/v1/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Workspace and Project members",
+      "item": [
+        {
+          "name": "Create Workspace",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('workspaceId', pm.response.json().data.id);"
+          ] } }],
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"M14 Workspace\",\"description\":\"MVP demo\"}" },
+            "url": "{{baseUrl}}/api/v1/workspaces"
+          }
+        },
+        {
+          "name": "Search Workspace candidate",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/users/search?keyword=Alice&contextType=WORKSPACE&contextId={{workspaceId}}&excludeExistingMembers=true" }
+        },
+        {
+          "name": "Add Workspace member",
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"userId\":\"{{aliceId}}\",\"role\":\"MEMBER\"}" },
+            "url": "{{baseUrl}}/api/v1/workspaces/{{workspaceId}}/members"
+          }
+        },
+        {
+          "name": "Create Project",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('projectId', pm.response.json().data.id);"
+          ] } }],
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"M14 Project\",\"description\":\"MVP demo\"}" },
+            "url": "{{baseUrl}}/api/v1/workspaces/{{workspaceId}}/projects"
+          }
+        },
+        {
+          "name": "Search Project candidate",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/users/search?keyword=Alice&contextType=PROJECT&contextId={{projectId}}&excludeExistingMembers=true" }
+        },
+        {
+          "name": "Add Project member",
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"userId\":\"{{aliceId}}\",\"role\":\"MEMBER\"}" },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members"
+          }
+        },
+        {
+          "name": "Alice reads Project",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{aliceToken}}", "type": "string" }] },
+            "method": "GET", "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Issue and collaboration",
+      "item": [
+        {
+          "name": "Create assigned Issue",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('issueId', pm.response.json().data.id);"
+          ] } }],
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\":\"Deliver M14 MVP\",\n  \"description\":\"Docs, deployment, AI, SSE, and RAG\",\n  \"assigneeIds\":[\"{{aliceId}}\"],\n  \"labelIds\":[]\n}" },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/issues"
+          }
+        },
+        {
+          "name": "Alice comments and mentions Adam",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{aliceToken}}", "type": "string" }] },
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"body\":\"Ready for review <@{{adamId}}>\"}" },
+            "url": "{{baseUrl}}/api/v1/issues/{{issueId}}/comments"
+          }
+        },
+        {
+          "name": "Upload attachment",
+          "request": {
+            "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "{{attachmentPath}}" }] },
+            "url": "{{baseUrl}}/api/v1/issues/{{issueId}}/attachments"
+          }
+        },
+        {
+          "name": "Upload Project document",
+          "request": {
+            "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "{{documentPath}}" }] },
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/documents"
+          }
+        },
+        {
+          "name": "Alice notifications",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{aliceToken}}", "type": "string" }] },
+            "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?page=1&size=20"
+          }
+        },
+        {
+          "name": "Adam notifications",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?page=1&size=20" }
+        }
+      ]
+    },
+    {
+      "name": "04 Direct LLM, SSE, and RAG",
+      "item": [
+        {
+          "name": "Summarize Issue",
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"workspaceId\":\"{{workspaceId}}\",\"projectId\":\"{{projectId}}\"}" },
+            "url": "{{baseUrl}}/api/v1/ai/issues/{{issueId}}/summarize"
+          }
+        },
+        {
+          "name": "SSE assist",
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "text/event-stream" }],
+            "body": { "mode": "raw", "raw": "{\"workspaceId\":\"{{workspaceId}}\",\"projectId\":\"{{projectId}}\",\"message\":\"Stream a concise implementation breakdown.\"}" },
+            "url": "{{baseUrl}}/api/v1/ai/assist/stream"
+          }
+        },
+        {
+          "name": "Project RAG ask",
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"workspaceId\":\"{{workspaceId}}\",\"question\":\"What does the uploaded delivery document say?\"}" },
+            "url": "{{baseUrl}}/api/v1/ai/projects/{{projectId}}/ask"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Export",
+      "item": [
+        {
+          "name": "Create CSV export",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('exportId', pm.response.json().data.id);"
+          ] } }],
+          "request": {
+            "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"projectId\":\"{{projectId}}\",\"format\":\"CSV\"}" },
+            "url": "{{baseUrl}}/api/v1/exports/issues"
+          }
+        },
+        { "name": "Get export status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/exports/{{exportId}}" } },
+        { "name": "Download export", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/exports/{{exportId}}/download" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+COLLECTION_DIR="${ROOT_DIR}/docs/api/bruno"
+BRUNO_CLI_VERSION="${BRUNO_CLI_VERSION:-3.5.1}"
+
+[[ -n "${DEMO_PASSWORD:-}" ]] || {
+  echo "ERROR: set DEMO_PASSWORD to a password accepted by the identity policy." >&2
+  exit 1
+}
+
+export DEMO_RUN_ID="${DEMO_RUN_ID:-$(date -u +%Y%m%d%H%M%S)-$$}"
+export BRUNO_ATTACHMENT_PATH="${COLLECTION_DIR}/fixtures/attachment.txt"
+export BRUNO_DOCUMENT_PATH="${COLLECTION_DIR}/fixtures/knowledge.md"
+
+if [[ "${BRUNO_USE_INSTALLED:-false}" == true ]]; then
+  command -v bru >/dev/null 2>&1 || {
+    echo "ERROR: BRUNO_USE_INSTALLED=true but bru is not installed." >&2
+    exit 1
+  }
+  runner=(bru)
+else
+  command -v npx >/dev/null 2>&1 || {
+    echo "ERROR: npx is required, or install bru and set BRUNO_USE_INSTALLED=true." >&2
+    exit 1
+  }
+  runner=(npx --yes "@usebruno/cli@${BRUNO_CLI_VERSION}")
+fi
+
+cd "${COLLECTION_DIR}"
+"${runner[@]}" run --env Local --sandbox=safe --delay 500 --bail

@@ -1,0 +1,30 @@
+meta {
+  name: 02 / Wait for Adam core projection
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/users/me
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const body = res.getBody();
+  const ready = res.getStatus() === 200 && body.code === "OK";
+  const attempts = Number(bru.getVar("adamProjectionAttempts") || 0) + 1;
+  bru.setVar("adamProjectionAttempts", attempts);
+  if (!ready && attempts < 30) {
+    bru.runner.setNextRequest("02 / Wait for Adam core projection");
+  }
+}
+
+tests {
+  test("Adam identity event reaches the core directory", function () {
+    const body = res.getBody();
+    const ready = res.getStatus() === 200 && body.code === "OK";
+    const attempts = Number(bru.getVar("adamProjectionAttempts") || 0);
+    expect(ready || attempts < 30).to.equal(true);
+  });
+}

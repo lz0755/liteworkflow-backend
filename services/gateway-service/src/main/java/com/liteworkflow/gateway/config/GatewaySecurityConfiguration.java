@@ -38,7 +38,8 @@ public class GatewaySecurityConfiguration {
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/webjars/**",
-                    "/v3/api-docs/**"));
+                    "/v3/api-docs/**",
+                    "/openapi/**"));
         }
 
         return http

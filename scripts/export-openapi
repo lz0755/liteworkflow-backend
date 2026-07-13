@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
+OUTPUT_DIR="${OUTPUT_DIR:-${ROOT_DIR}/docs/api/openapi}"
+
+command -v curl >/dev/null 2>&1 || { echo "ERROR: curl is required." >&2; exit 1; }
+command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is required." >&2; exit 1; }
+mkdir -p "${OUTPUT_DIR}"
+
+for service in gateway identity core infra ai; do
+  temporary="$(mktemp)"
+  trap 'rm -f "${temporary}"' EXIT
+  raw="$(mktemp)"
+  trap 'rm -f "${temporary}" "${raw}"' EXIT
+  if [[ "${service}" == gateway ]]; then
+    endpoint="/v3/api-docs/gateway"
+  else
+    endpoint="/openapi/${service}"
+  fi
+  curl --silent --show-error --fail "${BASE_URL}${endpoint}" >"${raw}"
+  python3 - "${raw}" "${temporary}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    document = json.load(source)
+if not document.get("openapi") or not document.get("info", {}).get("title") or "paths" not in document:
+    raise SystemExit("invalid OpenAPI document")
+with open(sys.argv[2], "w", encoding="utf-8") as target:
+    json.dump(document, target, ensure_ascii=False, indent=2, sort_keys=True)
+    target.write("\n")
+PY
+  rm -f "${raw}"
+  mv "${temporary}" "${OUTPUT_DIR}/${service}.json"
+  trap - EXIT
+  echo "Exported ${service}.json"
+done

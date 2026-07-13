@@ -1,0 +1,18 @@
+meta {
+  name: 00 / Swagger groups
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v3/api-docs/swagger-config
+  body: none
+  auth: none
+}
+
+tests {
+  test("five Swagger groups are published", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().urls).to.have.length(5);
+  });
+}

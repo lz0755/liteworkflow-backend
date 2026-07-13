@@ -1,0 +1,1253 @@
+{
+  "components": {
+    "schemas": {
+      "AiUsageResponse": {
+        "properties": {
+          "inputTokens": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "outputTokens": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalTokens": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseAssistResponse": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssistResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseConversationDetailResponse": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConversationDetailResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponsePageResultConversationSummaryResponse": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResultConversationSummaryResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseProjectAskResponse": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProjectAskResponse"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseStructuredSuggestionResponseBreakdownSuggestion": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StructuredSuggestionResponseBreakdownSuggestion"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseStructuredSuggestionResponseGenerateIssuesSuggestion": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StructuredSuggestionResponseGenerateIssuesSuggestion"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseStructuredSuggestionResponseIssueSummarySuggestion": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StructuredSuggestionResponseIssueSummarySuggestion"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ApiResponseStructuredSuggestionResponseWeeklyReportSuggestion": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StructuredSuggestionResponseWeeklyReportSuggestion"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AskProjectRequest": {
+        "properties": {
+          "question": {
+            "maxLength": 10000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "AssistRequest": {
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 8000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "AssistResponse": {
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "messageId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "type": "object"
+      },
+      "BreakdownIssueRequest": {
+        "properties": {
+          "description": {
+            "maxLength": 12000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "maxSubtasks": {
+            "format": "int32",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 0,
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "BreakdownSuggestion": {
+        "properties": {
+          "subtasks": {
+            "items": {
+              "$ref": "#/components/schemas/SubtaskSuggestion"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "type": "array"
+          }
+        },
+        "required": [
+          "subtasks"
+        ],
+        "type": "object"
+      },
+      "ConversationDetailResponse": {
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/ConversationSummaryResponse"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageResponse"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ConversationSummaryResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CurrentUser": {
+        "properties": {
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "GenerateIssuesRequest": {
+        "properties": {
+          "context": {
+            "maxLength": 12000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "count": {
+            "format": "int32",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "goal": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal",
+          "projectId",
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "GenerateIssuesSuggestion": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/IssueSuggestion"
+            },
+            "maxItems": 10,
+            "minItems": 0,
+            "type": "array"
+          }
+        },
+        "required": [
+          "suggestions"
+        ],
+        "type": "object"
+      },
+      "IssueSuggestion": {
+        "properties": {
+          "acceptanceCriteria": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 0,
+            "type": "array"
+          },
+          "description": {
+            "maxLength": 4000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "priority": {
+            "minLength": 1,
+            "pattern": "LOW|MEDIUM|HIGH|URGENT",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceCriteria",
+          "description",
+          "priority",
+          "title"
+        ],
+        "type": "object"
+      },
+      "IssueSummarySuggestion": {
+        "properties": {
+          "keyPoints": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 0,
+            "type": "array"
+          },
+          "nextActions": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 0,
+            "type": "array"
+          },
+          "risks": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 0,
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 4000,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyPoints",
+          "nextActions",
+          "risks",
+          "summary"
+        ],
+        "type": "object"
+      },
+      "MessageResponse": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "tokenCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PageResultConversationSummaryResponse": {
+        "properties": {
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationSummaryResponse"
+            },
+            "type": "array"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ProjectAskResponse": {
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectAskSource"
+            },
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "type": "object"
+      },
+      "ProjectAskSource": {
+        "properties": {
+          "chunkIndex": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "similarity": {
+            "format": "double",
+            "type": "number"
+          },
+          "sourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ServerSentEventAiStreamEventData": {},
+      "StructuredSuggestionResponseBreakdownSuggestion": {
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "suggestion": {
+            "$ref": "#/components/schemas/BreakdownSuggestion"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "type": "object"
+      },
+      "StructuredSuggestionResponseGenerateIssuesSuggestion": {
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "suggestion": {
+            "$ref": "#/components/schemas/GenerateIssuesSuggestion"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "type": "object"
+      },
+      "StructuredSuggestionResponseIssueSummarySuggestion": {
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "suggestion": {
+            "$ref": "#/components/schemas/IssueSummarySuggestion"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "type": "object"
+      },
+      "StructuredSuggestionResponseWeeklyReportSuggestion": {
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "suggestion": {
+            "$ref": "#/components/schemas/WeeklyReportSuggestion"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AiUsageResponse"
+          }
+        },
+        "type": "object"
+      },
+      "SubtaskSuggestion": {
+        "properties": {
+          "completionSignal": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "completionSignal",
+          "description",
+          "title"
+        ],
+        "type": "object"
+      },
+      "SummarizeIssueRequest": {
+        "properties": {
+          "activityDigest": {
+            "maxLength": 20000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 12000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "projectId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 0,
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "WeeklyReportRequest": {
+        "properties": {
+          "activityDigest": {
+            "maxLength": 30000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "weekEnd": {
+            "format": "date",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekEnd",
+          "weekStart",
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "WeeklyReportSuggestion": {
+        "properties": {
+          "achievements": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "type": "array"
+          },
+          "executiveSummary": {
+            "maxLength": 4000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "inProgress": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "type": "array"
+          },
+          "nextWeek": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "type": "array"
+          },
+          "risks": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 0,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 0,
+            "type": "array"
+          }
+        },
+        "required": [
+          "achievements",
+          "executiveSummary",
+          "inProgress",
+          "nextWeek",
+          "risks"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer-jwt": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "liteworkflow ai API",
+    "version": "v1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/ai/assist": {
+      "post": {
+        "operationId": "assist",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAssistResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/assist/stream": {
+      "post": {
+        "operationId": "streamAssist",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ServerSentEventAiStreamEventData"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations": {
+      "get": {
+        "operationId": "listConversations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResultConversationSummaryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations/{conversationId}": {
+      "get": {
+        "operationId": "getConversation",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          },
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseConversationDetailResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/issues/generate": {
+      "post": {
+        "operationId": "generateIssues",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateIssuesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStructuredSuggestionResponseGenerateIssuesSuggestion"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/issues/{issueId}/breakdown": {
+      "post": {
+        "operationId": "breakdownIssue",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issueId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakdownIssueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStructuredSuggestionResponseBreakdownSuggestion"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/issues/{issueId}/summarize": {
+      "post": {
+        "operationId": "summarizeIssue",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          },
+          {
+            "in": "path",
+            "name": "issueId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeIssueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStructuredSuggestionResponseIssueSummarySuggestion"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/projects/{projectId}/ask": {
+      "post": {
+        "operationId": "askProject",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskProjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProjectAskResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    },
+    "/api/v1/ai/projects/{projectId}/weekly-report": {
+      "post": {
+        "operationId": "weeklyReport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CurrentUser"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStructuredSuggestionResponseWeeklyReportSuggestion"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "ai-controller"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Generated server url",
+      "url": "http://localhost:8084"
+    }
+  ]
+}

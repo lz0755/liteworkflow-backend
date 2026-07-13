@@ -1,0 +1,22 @@
+meta {
+  name: 03 / Upload Issue attachment
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/api/v1/issues/{{issueId}}/attachments
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file({{attachmentPath}})
+}
+
+tests {
+  test("Issue attachment is uploaded", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+  });
+}

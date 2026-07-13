@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/app-common.sh
+source "${SCRIPT_DIR}/lib/app-common.sh"
+
+app_require_command curl
+services=(gateway-service identity-service core-service infra-service ai-service)
+ports=(8080 8081 8082 8083 8084)
+for index in "${!services[@]}"; do
+  app_wait_for_health "${services[$index]}" "${ports[$index]}" || app_die "${services[$index]} health check failed."
+done
+
+status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/v1/workspaces)"
+[[ "${status}" == 401 ]] || app_die "Gateway unauthenticated business request returned ${status}, expected 401."
+echo "PASS gateway/security: unauthenticated business request=401"
+
+status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/v3/api-docs/swagger-config)"
+[[ "${status}" == 200 ]] || app_die "Gateway OpenAPI configuration returned ${status}, expected 200."
+echo "PASS gateway/openapi: five-group Swagger configuration reachable"

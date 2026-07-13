@@ -1,0 +1,38 @@
+meta {
+  name: 01 / Register Adam
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "adam.{{runId}}@demo.invalid",
+    "displayName": "Adam",
+    "password": "{{demoPassword}}"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body.code === "OK") {
+    bru.setVar("adamToken", body.data.accessToken);
+  }
+}
+
+tests {
+  test("Adam registration succeeds", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+    expect(res.getBody().data.accessToken).to.be.a("string").and.not.empty;
+  });
+}

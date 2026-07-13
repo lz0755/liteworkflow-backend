@@ -1,6 +1,7 @@
 package com.liteworkflow.gateway.config;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -12,6 +13,7 @@ public class GatewayProperties {
     private final OpenApi openapi = new OpenApi();
     private final Cors cors = new Cors();
     private final RateLimits rateLimits = new RateLimits();
+    private final Timeouts timeouts = new Timeouts();
 
     public Services getServices() {
         return services;
@@ -27,6 +29,10 @@ public class GatewayProperties {
 
     public RateLimits getRateLimits() {
         return rateLimits;
+    }
+
+    public Timeouts getTimeouts() {
+        return timeouts;
     }
 
     public static final class Services {
@@ -71,6 +77,18 @@ public class GatewayProperties {
         public Limit getUserSearch() { return userSearch; }
         public Limit getAi() { return ai; }
         public Limit getSse() { return sse; }
+    }
+
+    public static final class Timeouts {
+        private Duration aiResponseTimeout = Duration.ofSeconds(75);
+
+        public Duration getAiResponseTimeout() { return aiResponseTimeout; }
+        public void setAiResponseTimeout(Duration aiResponseTimeout) {
+            if (aiResponseTimeout == null || aiResponseTimeout.isZero() || aiResponseTimeout.isNegative()) {
+                throw new IllegalArgumentException("AI response timeout must be positive");
+            }
+            this.aiResponseTimeout = aiResponseTimeout;
+        }
     }
 
     public static final class Limit {

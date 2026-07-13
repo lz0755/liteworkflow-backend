@@ -1,0 +1,38 @@
+meta {
+  name: 03 / Wait for Alice assignment notification
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/api/v1/notifications?page=1&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{aliceToken}}
+}
+
+script:post-response {
+  const body = res.getBody();
+  const records = body && body.data && Array.isArray(body.data.records) ? body.data.records : [];
+  const found = res.getStatus() === 200 && body.code === "OK"
+    && records.some(item => item.type === "ISSUE_ASSIGNED");
+  const attempts = Number(bru.getVar("aliceNotificationAttempts") || 0) + 1;
+  bru.setVar("aliceNotificationAttempts", attempts);
+  if (!found && attempts < 30) {
+    bru.runner.setNextRequest("03 / Wait for Alice assignment notification");
+  }
+}
+
+tests {
+  test("Alice receives the assignment notification", function () {
+    const body = res.getBody();
+    const records = body && body.data && Array.isArray(body.data.records) ? body.data.records : [];
+    const found = res.getStatus() === 200 && body.code === "OK"
+      && records.some(item => item.type === "ISSUE_ASSIGNED");
+    const attempts = Number(bru.getVar("aliceNotificationAttempts") || 0);
+    expect(found || attempts < 30).to.equal(true);
+  });
+}

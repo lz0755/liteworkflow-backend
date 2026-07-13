@@ -1,0 +1,37 @@
+meta {
+  name: 02 / Create Project
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/v1/workspaces/{{workspaceId}}/projects
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "M14 Bruno Project",
+    "description": "Five-service Bruno CLI demonstration"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body.code === "OK") {
+    bru.setVar("projectId", body.data.id);
+  }
+}
+
+tests {
+  test("Project is created", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+    expect(res.getBody().data.id).to.be.a("string").and.not.empty;
+  });
+}

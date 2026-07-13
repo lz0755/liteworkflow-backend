@@ -30,7 +30,7 @@ spring:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_AMQP_PORT:5672}
     username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    password: ${RABBITMQ_PASSWORD:}
     virtual-host: ${RABBITMQ_VHOST:/}
     publisher-confirm-type: correlated
     publisher-returns: true
@@ -54,7 +54,7 @@ liteworkflow:
       access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
       clock-skew: ${JWT_CLOCK_SKEW:30s}
   core:
-    internal-token: ${INTERNAL_SERVICE_TOKEN:change-me-internal-token}
+    internal-token: ${INTERNAL_SERVICE_TOKEN:}
     permission-cache-enabled: ${CORE_PERMISSION_CACHE_ENABLED:true}
     outbox:
       max-retries: ${CORE_OUTBOX_MAX_RETRIES:12}

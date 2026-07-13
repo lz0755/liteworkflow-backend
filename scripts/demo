@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
+DEMO_RUN_ID="${DEMO_RUN_ID:-$(date -u +%Y%m%d%H%M%S)}"
+DEMO_PASSWORD="${DEMO_PASSWORD:-}"
+[[ -n "${DEMO_PASSWORD}" ]] || { echo "ERROR: set DEMO_PASSWORD to a password accepted by the identity policy." >&2; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo "ERROR: curl is required." >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required." >&2; exit 1; }
+
+work_dir="$(mktemp -d)"
+chmod 700 "${work_dir}"
+trap 'rm -rf "${work_dir}"' EXIT
+
+adam_email="adam.${DEMO_RUN_ID}@demo.invalid"
+alice_email="alice.${DEMO_RUN_ID}@demo.invalid"
+bob_email="bob.${DEMO_RUN_ID}@demo.invalid"
+
+require_ok() {
+  local label="$1"
+  local response="$2"
+  if [[ "$(jq -r '.code // empty' <<<"${response}")" != OK ]]; then
+    echo "ERROR: ${label} failed with code $(jq -r '.code // "HTTP_ERROR"' <<<"${response}")." >&2
+    exit 1
+  fi
+}
+
+request_json() {
+  local method="$1" path="$2" token="$3" body="${4:-}"
+  local args=(--silent --show-error --fail-with-body --request "${method}" "${BASE_URL}${path}" --header 'Content-Type: application/json')
+  [[ -z "${token}" ]] || args+=(--header "Authorization: Bearer ${token}")
+  [[ -z "${body}" ]] || args+=(--data "${body}")
+  curl "${args[@]}"
+}
+
+register() {
+  local email="$1" display_name="$2"
+  request_json POST /api/v1/auth/register "" "$(jq -nc \
+    --arg email "${email}" --arg name "${display_name}" --arg password "${DEMO_PASSWORD}" \
+    '{email:$email,displayName:$name,password:$password}')"
+}
+
+echo "[1/14] Registering Adam, Alice, and Bob with run id ${DEMO_RUN_ID}..."
+adam_register="$(register "${adam_email}" Adam)"; require_ok "Adam registration" "${adam_register}"
+alice_register="$(register "${alice_email}" Alice)"; require_ok "Alice registration" "${alice_register}"
+bob_register="$(register "${bob_email}" Bob)"; require_ok "Bob registration" "${bob_register}"
+adam_token="$(jq -r '.data.accessToken' <<<"${adam_register}")"
+
+echo "[2/14] Logging in Alice..."
+alice_login="$(request_json POST /api/v1/auth/login "" "$(jq -nc --arg email "${alice_email}" \
+  --arg password "${DEMO_PASSWORD}" '{email:$email,password:$password}')")"
+require_ok "Alice login" "${alice_login}"
+alice_token="$(jq -r '.data.accessToken' <<<"${alice_login}")"
+
+adam_me="$(request_json GET /api/v1/auth/me "${adam_token}")"; require_ok "Adam identity" "${adam_me}"
+alice_me="$(request_json GET /api/v1/auth/me "${alice_token}")"; require_ok "Alice identity" "${alice_me}"
+adam_id="$(jq -r '.data.userId' <<<"${adam_me}")"
+alice_id="$(jq -r '.data.userId' <<<"${alice_me}")"
+
+echo "Waiting for identity events to populate core.user_directory..."
+for attempt in {1..30}; do
+  if request_json GET /api/v1/users/me "${adam_token}" >/dev/null 2>&1 \
+      && request_json GET /api/v1/users/me "${alice_token}" >/dev/null 2>&1; then
+    break
+  fi
+  [[ ${attempt} -lt 30 ]] || { echo "ERROR: user directory projection did not converge." >&2; exit 1; }
+  sleep 1
+done
+
+echo "[3/14] Creating Workspace..."
+workspace_response="$(request_json POST /api/v1/workspaces "${adam_token}" \
+  '{"name":"M14 Delivery Workspace","description":"Repeatable MVP delivery demonstration"}')"
+require_ok "workspace creation" "${workspace_response}"
+workspace_id="$(jq -r '.data.id' <<<"${workspace_response}")"
+
+echo "[4/14] Searching Alice and adding her to Workspace..."
+workspace_search="$(curl --silent --show-error --fail-with-body --get "${BASE_URL}/api/v1/users/search" \
+  --header "Authorization: Bearer ${adam_token}" --data-urlencode "keyword=Alice" \
+  --data-urlencode "contextType=WORKSPACE" --data-urlencode "contextId=${workspace_id}" \
+  --data-urlencode 'excludeExistingMembers=true')"
+require_ok "workspace candidate search" "${workspace_search}"
+[[ "$(jq --arg id "${alice_id}" '[.data.records[] | select(.userId==$id and .eligible==true)] | length' <<<"${workspace_search}")" == 1 ]] \
+  || { echo "ERROR: Alice was not an eligible Workspace candidate." >&2; exit 1; }
+workspace_member="$(request_json POST "/api/v1/workspaces/${workspace_id}/members" "${adam_token}" \
+  "$(jq -nc --arg userId "${alice_id}" '{userId:$userId,role:"MEMBER"}')")"
+require_ok "workspace member add" "${workspace_member}"
+
+excluded_search="$(curl --silent --show-error --fail-with-body --get "${BASE_URL}/api/v1/users/search" \
+  --header "Authorization: Bearer ${adam_token}" --data-urlencode "keyword=Alice" \
+  --data-urlencode "contextType=WORKSPACE" --data-urlencode "contextId=${workspace_id}" \
+  --data-urlencode 'excludeExistingMembers=true')"
+[[ "$(jq --arg id "${alice_id}" '[.data.records[] | select(.userId==$id)] | length' <<<"${excluded_search}")" == 0 ]] \
+  || { echo "ERROR: existing Workspace member was not excluded from search." >&2; exit 1; }
+
+echo "[5/14] Creating Project and adding Alice from Project candidates..."
+project_response="$(request_json POST "/api/v1/workspaces/${workspace_id}/projects" "${adam_token}" \
+  '{"name":"M14 MVP Project","description":"Five-service delivery demo"}')"
+require_ok "project creation" "${project_response}"
+project_id="$(jq -r '.data.id' <<<"${project_response}")"
+project_search="$(curl --silent --show-error --fail-with-body --get "${BASE_URL}/api/v1/users/search" \
+  --header "Authorization: Bearer ${adam_token}" --data-urlencode "keyword=Alice" \
+  --data-urlencode "contextType=PROJECT" --data-urlencode "contextId=${project_id}" \
+  --data-urlencode 'excludeExistingMembers=true')"
+require_ok "project candidate search" "${project_search}"
+[[ "$(jq --arg id "${alice_id}" '[.data.records[] | select(.userId==$id and .eligible==true)] | length' <<<"${project_search}")" == 1 ]] \
+  || { echo "ERROR: Alice was not an eligible Project candidate." >&2; exit 1; }
+project_member="$(request_json POST "/api/v1/projects/${project_id}/members" "${adam_token}" \
+  "$(jq -nc --arg userId "${alice_id}" '{userId:$userId,role:"MEMBER"}')")"
+require_ok "project member add" "${project_member}"
+
+echo "[6/14] Verifying Alice can access the Project..."
+alice_project="$(request_json GET "/api/v1/projects/${project_id}" "${alice_token}")"
+require_ok "Alice project access" "${alice_project}"
+
+echo "[7/14] Creating and assigning an Issue..."
+issue_response="$(request_json POST "/api/v1/projects/${project_id}/issues" "${adam_token}" \
+  "$(jq -nc --arg alice "${alice_id}" --arg request "$(cat /proc/sys/kernel/random/uuid)" \
+  '{title:"Deliver M14 MVP",description:"Verify docs, deployment, demo, AI, SSE, and RAG.",assigneeIds:[$alice],labelIds:[],clientRequestId:$request}')")"
+require_ok "issue creation" "${issue_response}"
+issue_id="$(jq -r '.data.id' <<<"${issue_response}")"
+
+echo "[8/14] Commenting as Alice and mentioning Adam..."
+comment_response="$(request_json POST "/api/v1/issues/${issue_id}/comments" "${alice_token}" \
+  "$(jq -nc --arg body "M14 is ready for review <@${adam_id}>" '{body:$body}')")"
+require_ok "comment mention" "${comment_response}"
+
+printf '%s\n' 'M14 attachment generated by the repeatable demo.' >"${work_dir}/attachment.txt"
+printf '%s\n' '# M14 knowledge' '' 'The MVP release name is Lighthouse and its owner is Adam.' >"${work_dir}/knowledge.md"
+echo "[9/14] Uploading an Issue attachment and Project document..."
+attachment_response="$(curl --silent --show-error --fail-with-body \
+  --header "Authorization: Bearer ${adam_token}" --form "file=@${work_dir}/attachment.txt;type=text/plain" \
+  "${BASE_URL}/api/v1/issues/${issue_id}/attachments")"
+require_ok "attachment upload" "${attachment_response}"
+document_response="$(curl --silent --show-error --fail-with-body \
+  --header "Authorization: Bearer ${adam_token}" --form "file=@${work_dir}/knowledge.md;type=text/markdown" \
+  "${BASE_URL}/api/v1/projects/${project_id}/documents")"
+require_ok "project document upload" "${document_response}"
+
+echo "[10/14] Waiting for projected notifications..."
+for attempt in {1..30}; do
+  alice_notifications="$(request_json GET '/api/v1/notifications?page=1&size=20' "${alice_token}")"
+  adam_notifications="$(request_json GET '/api/v1/notifications?page=1&size=20' "${adam_token}")"
+  if [[ "$(jq '[.data.records[] | select(.type=="ISSUE_ASSIGNED")] | length' <<<"${alice_notifications}")" -ge 1 \
+      && "$(jq '[.data.records[] | select(.type=="COMMENT_MENTION")] | length' <<<"${adam_notifications}")" -ge 1 ]]; then
+    break
+  fi
+  [[ ${attempt} -lt 30 ]] || { echo "ERROR: expected notifications were not projected." >&2; exit 1; }
+  sleep 1
+done
+
+echo "[11/14] Calling Direct LLM Issue summary..."
+summary_response="$(request_json POST "/api/v1/ai/issues/${issue_id}/summarize" "${adam_token}" \
+  "$(jq -nc --arg workspace "${workspace_id}" --arg project "${project_id}" \
+  '{workspaceId:$workspace,projectId:$project}')")"
+require_ok "Direct LLM summary" "${summary_response}"
+
+echo "[12/14] Verifying SSE context/delta/done events..."
+: >"${work_dir}/sse.out"
+curl --silent --show-error --fail-with-body --no-buffer --max-time 120 \
+  --header "Authorization: Bearer ${adam_token}" --header 'Content-Type: application/json' \
+  --header 'Accept: text/event-stream' \
+  --data "$(jq -nc --arg workspace "${workspace_id}" --arg project "${project_id}" \
+    '{workspaceId:$workspace,projectId:$project,message:"Stream a concise implementation breakdown."}')" \
+  "${BASE_URL}/api/v1/ai/assist/stream" >"${work_dir}/sse.out" &
+sse_pid=$!
+sse_terminal=false
+for attempt in {1..120}; do
+  if grep -Eq '^event:(done|error)' "${work_dir}/sse.out"; then
+    sse_terminal=true
+    break
+  fi
+  kill -0 "${sse_pid}" 2>/dev/null || break
+  sleep 1
+done
+# done/error is the application-level terminal signal. Disconnect explicitly so a proxy
+# keeping the transport alive cannot make an otherwise complete demonstration hang.
+kill "${sse_pid}" 2>/dev/null || true
+wait "${sse_pid}" 2>/dev/null || true
+[[ "${sse_terminal}" == true ]] || { echo "ERROR: SSE terminal event missing." >&2; exit 1; }
+grep -q '^event:context' "${work_dir}/sse.out" || { echo "ERROR: SSE context event missing." >&2; exit 1; }
+grep -q '^event:delta' "${work_dir}/sse.out" || { echo "ERROR: SSE delta event missing." >&2; exit 1; }
+grep -q '^event:done' "${work_dir}/sse.out" || { echo "ERROR: SSE done event missing." >&2; exit 1; }
+
+echo "[13/14] Asking RAG until the uploaded document is indexed..."
+rag_sources=0
+for attempt in {1..20}; do
+  rag_response="$(request_json POST "/api/v1/ai/projects/${project_id}/ask" "${adam_token}" \
+    "$(jq -nc --arg workspace "${workspace_id}" \
+    '{workspaceId:$workspace,question:"The MVP release name is Lighthouse and its owner is Adam. Confirm this from the project document."}')")"
+  require_ok "RAG ask" "${rag_response}"
+  rag_sources="$(jq '.data.sources | length' <<<"${rag_response}")"
+  [[ "${rag_sources}" -gt 0 ]] && break
+  sleep 2
+done
+[[ "${rag_sources}" -gt 0 ]] || { echo "ERROR: RAG returned no source after indexing; calibrate LITEWORKFLOW_RAG_SIMILARITY_THRESHOLD for the configured embedding model." >&2; exit 1; }
+
+echo "[14/14] Creating CSV export and downloading it..."
+export_response="$(request_json POST /api/v1/exports/issues "${adam_token}" \
+  "$(jq -nc --arg project "${project_id}" '{projectId:$project,format:"CSV"}')")"
+require_ok "export creation" "${export_response}"
+export_id="$(jq -r '.data.id' <<<"${export_response}")"
+for attempt in {1..60}; do
+  export_status="$(request_json GET "/api/v1/exports/${export_id}" "${adam_token}")"
+  require_ok "export status" "${export_status}"
+  status="$(jq -r '.data.status' <<<"${export_status}")"
+  [[ "${status}" == COMPLETED ]] && break
+  [[ "${status}" != FAILED ]] || { echo "ERROR: export job failed." >&2; exit 1; }
+  [[ ${attempt} -lt 60 ]] || { echo "ERROR: export did not complete in time." >&2; exit 1; }
+  sleep 1
+done
+curl --silent --show-error --fail --header "Authorization: Bearer ${adam_token}" \
+  "${BASE_URL}/api/v1/exports/${export_id}/download" --output "${work_dir}/issues.csv"
+grep -q 'Deliver M14 MVP' "${work_dir}/issues.csv" || { echo "ERROR: downloaded CSV did not contain the demo Issue." >&2; exit 1; }
+
+echo "M14 demo passed: workspace=${workspace_id} project=${project_id} issue=${issue_id}; temporary tokens and files were removed."

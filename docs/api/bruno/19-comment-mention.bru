@@ -1,0 +1,32 @@
+meta {
+  name: 03 / Alice comments and mentions Adam
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/api/v1/issues/{{issueId}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{aliceToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "body": "M14 is ready for review <@{{adamId}}>"
+  }
+}
+
+tests {
+  test("comment and canonical mention are accepted", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+  });
+}

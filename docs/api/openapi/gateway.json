@@ -1,0 +1,23 @@
+{
+  "components": {
+    "securitySchemes": {
+      "bearer-jwt": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "liteworkflow gateway API",
+    "version": "v1"
+  },
+  "openapi": "3.1.0",
+  "paths": {},
+  "servers": [
+    {
+      "description": "Generated server url",
+      "url": "http://127.0.0.1:8080"
+    }
+  ]
+}

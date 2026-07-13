@@ -77,6 +77,7 @@ out/
 
 # Spring Boot local configuration and runtime files
 logs/
+.run/
 spring-shell.log
 application-local.properties
 application-local.yml

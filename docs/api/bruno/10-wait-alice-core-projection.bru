@@ -1,0 +1,34 @@
+meta {
+  name: 02 / Wait for Alice core projection
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/users/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{aliceToken}}
+}
+
+script:post-response {
+  const body = res.getBody();
+  const ready = res.getStatus() === 200 && body.code === "OK";
+  const attempts = Number(bru.getVar("aliceProjectionAttempts") || 0) + 1;
+  bru.setVar("aliceProjectionAttempts", attempts);
+  if (!ready && attempts < 30) {
+    bru.runner.setNextRequest("02 / Wait for Alice core projection");
+  }
+}
+
+tests {
+  test("Alice identity event reaches the core directory", function () {
+    const body = res.getBody();
+    const ready = res.getStatus() === 200 && body.code === "OK";
+    const attempts = Number(bru.getVar("aliceProjectionAttempts") || 0);
+    expect(ready || attempts < 30).to.equal(true);
+  });
+}

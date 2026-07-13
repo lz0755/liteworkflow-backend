@@ -1,0 +1,18 @@
+meta {
+  name: 05 / Download CSV export
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/api/v1/exports/{{exportId}}/download
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("downloaded CSV contains the Bruno Issue", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(String(res.getBody())).to.include("Deliver M14 MVP with Bruno");
+  });
+}

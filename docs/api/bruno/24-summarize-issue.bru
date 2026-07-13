@@ -1,0 +1,34 @@
+meta {
+  name: 04 / Direct LLM Issue summary
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/api/v1/ai/issues/{{issueId}}/summarize
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "workspaceId": "{{workspaceId}}",
+    "projectId": "{{projectId}}"
+  }
+}
+
+tests {
+  test("Direct LLM summary succeeds", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().code).to.equal("OK");
+    expect(res.getBody().data).to.exist;
+  });
+}
+
+settings {
+  timeout: 120000
+}

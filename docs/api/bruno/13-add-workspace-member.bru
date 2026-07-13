@@ -1,0 +1,29 @@
+meta {
+  name: 02 / Add Workspace member
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/workspaces/{{workspaceId}}/members
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "userId": "{{aliceId}}",
+    "role": "MEMBER"
+  }
+}
+
+tests {
+  test("Alice is added to the Workspace", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+  });
+}

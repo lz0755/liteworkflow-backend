@@ -1,0 +1,33 @@
+meta {
+  name: 05 / Wait for CSV export
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/api/v1/exports/{{exportId}}
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const body = res.getBody();
+  const status = body && body.data ? body.data.status : "";
+  const completed = res.getStatus() === 200 && body.code === "OK" && status === "COMPLETED";
+  const attempts = Number(bru.getVar("exportAttempts") || 0) + 1;
+  bru.setVar("exportAttempts", attempts);
+  if (!completed && status !== "FAILED" && attempts < 60) {
+    bru.runner.setNextRequest("05 / Wait for CSV export");
+  }
+}
+
+tests {
+  test("CSV export completes", function () {
+    const body = res.getBody();
+    const status = body && body.data ? body.data.status : "";
+    const completed = res.getStatus() === 200 && body.code === "OK" && status === "COMPLETED";
+    const attempts = Number(bru.getVar("exportAttempts") || 0);
+    expect(status).to.not.equal("FAILED");
+    expect(completed || attempts < 60).to.equal(true);
+  });
+}

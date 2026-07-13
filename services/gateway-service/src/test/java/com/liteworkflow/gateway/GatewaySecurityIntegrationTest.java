@@ -245,10 +245,10 @@ class GatewaySecurityIntegrationTest {
                 .expectBody()
                 .jsonPath("$.urls.length()").isEqualTo(5)
                 .jsonPath("$.urls[?(@.name == 'gateway')]").exists()
-                .jsonPath("$.urls[?(@.name == 'identity')]").exists()
-                .jsonPath("$.urls[?(@.name == 'core')]").exists()
-                .jsonPath("$.urls[?(@.name == 'infra')]").exists()
-                .jsonPath("$.urls[?(@.name == 'ai')]").exists();
+                .jsonPath("$.urls[?(@.name == 'identity' && @.url == '/openapi/identity')]").exists()
+                .jsonPath("$.urls[?(@.name == 'core' && @.url == '/openapi/core')]").exists()
+                .jsonPath("$.urls[?(@.name == 'infra' && @.url == '/openapi/infra')]").exists()
+                .jsonPath("$.urls[?(@.name == 'ai' && @.url == '/openapi/ai')]").exists();
 
         client.get()
                 .uri("/v3/api-docs/gateway")
@@ -309,6 +309,11 @@ class GatewaySecurityIntegrationTest {
                 .expectStatus().isOk();
 
         verify(aiRateLimiter).isAllowed("ai-api", "user:" + USER_ID);
+        var aiRoute = routeLocator.getRoutes()
+                .filter(route -> route.getId().equals("ai-api"))
+                .blockFirst();
+        assertThat(aiRoute).isNotNull();
+        assertThat(aiRoute.getMetadata()).containsEntry("response-timeout", 75_000L);
     }
 
     private String token() {

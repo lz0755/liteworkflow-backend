@@ -59,13 +59,13 @@ import org.springframework.test.context.DynamicPropertySource;
         "LITEWORKFLOW_AI_MAX_OUTPUT_TOKENS=100",
         "LITEWORKFLOW_AI_DAILY_REQUEST_LIMIT=100",
         "LITEWORKFLOW_AI_DAILY_TOKEN_LIMIT=100000",
-        "JWT_SECRET=c3VwZXItc2VjcmV0LXRlc3Qta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2ghISE="
+        "liteworkflow.security.jwt.secret=c3VwZXItc2VjcmV0LXRlc3Qta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2ghISE="
 })
 @ActiveProfiles("integration")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DirectOpenAiIntegrationTest {
 
-    private static final String API_KEY = "sk-integration-secret-123456789";
+    private static final String API_KEY = "test-api-key-placeholder";
     private static final String INTERNAL_TOKEN = "internal-integration-token";
     private static final String MODEL = "integration-chat-model";
     private static final MockWebServer SERVER = server();
@@ -179,7 +179,7 @@ class DirectOpenAiIntegrationTest {
     @Test
     @Order(4)
     void provider5xxIsRetriedAndMappedWithoutLeakingItsSecretBodyToLogs() throws Exception {
-        String secret = "sk-never-log-this-secret-987654321";
+        String secret = "test-never-log-this-secret";
         int before = SERVER.getRequestCount();
         SERVER.enqueue(error(503, "upstream failure " + secret));
         SERVER.enqueue(error(503, "upstream failure " + secret));

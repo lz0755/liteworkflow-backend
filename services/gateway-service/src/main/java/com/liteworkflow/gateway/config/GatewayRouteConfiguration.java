@@ -87,20 +87,25 @@ public class GatewayRouteConfiguration {
                 .filters(filters -> filters.requestRateLimiter(config -> config
                         .setRateLimiter(aiRateLimiter)
                         .setKeyResolver(authenticatedUserKeyResolver)))
+                .metadata(RESPONSE_TIMEOUT_ATTR, properties.getTimeouts().getAiResponseTimeout().toMillis())
                 .uri(properties.getServices().getAi()));
 
         if (properties.getOpenapi().isEnabled()) {
             routes.route("openapi-identity", route -> route
-                    .path("/v3/api-docs/identity")
+                    .path("/openapi/identity")
+                    .filters(filters -> filters.setPath("/v3/api-docs/identity"))
                     .uri(properties.getServices().getIdentity()));
             routes.route("openapi-core", route -> route
-                    .path("/v3/api-docs/core")
+                    .path("/openapi/core")
+                    .filters(filters -> filters.setPath("/v3/api-docs/core"))
                     .uri(properties.getServices().getCore()));
             routes.route("openapi-infra", route -> route
-                    .path("/v3/api-docs/infra")
+                    .path("/openapi/infra")
+                    .filters(filters -> filters.setPath("/v3/api-docs/infra"))
                     .uri(properties.getServices().getInfra()));
             routes.route("openapi-ai", route -> route
-                    .path("/v3/api-docs/ai")
+                    .path("/openapi/ai")
+                    .filters(filters -> filters.setPath("/v3/api-docs/ai"))
                     .uri(properties.getServices().getAi()));
         }
         return routes.build();

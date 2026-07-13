@@ -49,6 +49,9 @@ liteworkflow:
       user-search: { replenish-rate: 60, burst-capacity: 3600, requested-tokens: 60 }
       ai: { replenish-rate: 30, burst-capacity: 1800, requested-tokens: 60 }
       sse: { replenish-rate: 5, burst-capacity: 300, requested-tokens: 60 }
+    timeouts:
+      # Must be longer than ai-service's own request timeout so provider failures retain their 502/504 mapping.
+      ai-response-timeout: ${LITEWORKFLOW_GATEWAY_AI_RESPONSE_TIMEOUT:75s}
 
 springdoc:
   api-docs:
@@ -60,13 +63,13 @@ springdoc:
       - name: gateway
         url: /v3/api-docs/gateway
       - name: identity
-        url: /v3/api-docs/identity
+        url: /openapi/identity
       - name: core
-        url: /v3/api-docs/core
+        url: /openapi/core
       - name: infra
-        url: /v3/api-docs/infra
+        url: /openapi/infra
       - name: ai
-        url: /v3/api-docs/ai
+        url: /openapi/ai
 
 management:
   endpoints:

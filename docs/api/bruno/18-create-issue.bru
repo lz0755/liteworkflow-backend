@@ -1,0 +1,39 @@
+meta {
+  name: 03 / Create assigned Issue
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/api/v1/projects/{{projectId}}/issues
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Deliver M14 MVP with Bruno",
+    "description": "Verify docs, deployment, demo, AI, SSE, and RAG.",
+    "assigneeIds": ["{{aliceId}}"],
+    "labelIds": []
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body.code === "OK") {
+    bru.setVar("issueId", body.data.id);
+  }
+}
+
+tests {
+  test("assigned Issue is created", function () {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().code).to.equal("OK");
+    expect(res.getBody().data.id).to.be.a("string").and.not.empty;
+  });
+}

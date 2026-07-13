@@ -1,0 +1,47 @@
+meta {
+  name: 04 / Project RAG ask
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/api/v1/ai/projects/{{projectId}}/ask
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "workspaceId": "{{workspaceId}}",
+    "question": "The MVP release name is Lighthouse and its owner is Adam. Confirm this from the project document."
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  const sources = body && body.data && Array.isArray(body.data.sources) ? body.data.sources : [];
+  const found = res.getStatus() === 200 && body.code === "OK" && sources.length > 0;
+  const attempts = Number(bru.getVar("ragAttempts") || 0) + 1;
+  bru.setVar("ragAttempts", attempts);
+  if (!found && attempts < 20) {
+    bru.runner.setNextRequest("04 / Project RAG ask");
+  }
+}
+
+tests {
+  test("RAG answer cites the uploaded document", function () {
+    const body = res.getBody();
+    const sources = body && body.data && Array.isArray(body.data.sources) ? body.data.sources : [];
+    const found = res.getStatus() === 200 && body.code === "OK" && sources.length > 0;
+    const attempts = Number(bru.getVar("ragAttempts") || 0);
+    expect(found || attempts < 20).to.equal(true);
+  });
+}
+
+settings {
+  timeout: 120000
+}

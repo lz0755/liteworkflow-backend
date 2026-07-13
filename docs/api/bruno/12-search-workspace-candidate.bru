@@ -1,0 +1,21 @@
+meta {
+  name: 02 / Search Workspace candidate
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/v1/users/search?keyword=Alice&contextType=WORKSPACE&contextId={{workspaceId}}&excludeExistingMembers=true
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("Alice is an eligible Workspace candidate", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().code).to.equal("OK");
+    const aliceId = bru.getVar("aliceId");
+    const records = res.getBody().data.records;
+    expect(records.some(item => item.userId === aliceId && item.eligible === true)).to.equal(true);
+  });
+}

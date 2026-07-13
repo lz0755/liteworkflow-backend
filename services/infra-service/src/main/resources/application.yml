@@ -25,7 +25,7 @@ spring:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_AMQP_PORT:5672}
     username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    password: ${RABBITMQ_PASSWORD:}
     virtual-host: ${RABBITMQ_VHOST:/}
     publisher-confirm-type: correlated
     publisher-returns: true
@@ -61,7 +61,7 @@ liteworkflow:
       clock-skew: ${JWT_CLOCK_SKEW:30s}
   storage:
     core-service-url: ${CORE_SERVICE_URL:http://localhost:8082}
-    internal-token: ${INTERNAL_SERVICE_TOKEN:change-me-internal-token}
+    internal-token: ${INTERNAL_SERVICE_TOKEN:}
     scheduling-enabled: ${FILE_SCHEDULING_ENABLED:true}
     s3:
       bucket: ${S3_BUCKET:${SEAWEEDFS_BUCKET:liteworkflow}}
@@ -77,7 +77,7 @@ liteworkflow:
       document-bytes: ${FILE_DOCUMENT_MAX_BYTES:52428800}
   notification:
     core-service-url: ${CORE_SERVICE_URL:http://localhost:8082}
-    internal-token: ${INTERNAL_SERVICE_TOKEN:change-me-internal-token}
+    internal-token: ${INTERNAL_SERVICE_TOKEN:}
     web-base-url: ${LITEWORKFLOW_WEB_BASE_URL:http://localhost:3000}
     email:
       from: ${SMTP_FROM:no-reply@liteworkflow.local}
