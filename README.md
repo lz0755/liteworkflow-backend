@@ -64,7 +64,7 @@ scripts/check-log-redaction
 scripts/export-openapi
 ```
 
-- [M0–M14 交付矩阵](docs/delivery/m0-m14-acceptance-matrix.md)
+
 - [架构](docs/architecture.md)
 - [部署与环境变量](docs/deploy/deployment.md)
 - [数据库](docs/db/database.md)
@@ -76,7 +76,7 @@ scripts/export-openapi
 - [故障排查](docs/deploy/troubleshooting.md)
 - [数据重置](docs/deploy/data-reset.md)
 - [演示手册](docs/demo-script.md)
-- [M15–M18 扩展点](docs/post-mvp/extensions.md)
+- [扩展点](docs/post-mvp/extensions.md)
 
 ## 开发约束
 
